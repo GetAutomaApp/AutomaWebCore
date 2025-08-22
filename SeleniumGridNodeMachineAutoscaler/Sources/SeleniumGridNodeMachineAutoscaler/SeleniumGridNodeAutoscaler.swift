@@ -9,9 +9,11 @@ internal struct SeleniumGridNodeAutoscaler {
     let seleniumGridHubBase: String
 
     let client: any Client
+    let logger: Logger
 
-    init(client: any Client) throws {
+    init(client: any Client, logger: Logger) throws {
         self.client = client
+        self.logger = logger
         guard let hubBase = Environment.get("SELENIUM_GRID_HUB_BASE")
         else {
             throw Abort(.internalServerError)
@@ -36,7 +38,14 @@ internal struct SeleniumGridNodeAutoscaler {
     }
 
     private func getGridSessionQueueReponse() async throws -> SessionQueueResponse {
-        let res = try await client.post(.init(path: "http://\(seleniumGridHubBase)/graphql")) { req in
+        let url = "http://\(seleniumGridHubBase):4444/graphql"
+        logger.info(
+            "Session Queue URL: \(url).",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+        let res = try await client.post(.init(stringLiteral: url)) { req in
             try req.content
                 .encode(SeleniumGridGraphQLQuery(query: "query SessionsInfo { sessionsInfo { sessionQueueRequests }}"))
         }
@@ -44,6 +53,12 @@ internal struct SeleniumGridNodeAutoscaler {
     }
 
     private func createNewSeleniumGridNodeFlyMachine() async throws {
+        logger.info(
+            "Creating new node machine.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
         guard
             let urlString = Environment.get("FLY_API_URL"),
             let flyAPIURL = URL(string: urlString)
@@ -67,6 +82,7 @@ internal struct SeleniumGridNodeAutoscaler {
         let createMachineContent: [String: Any] = [
             "config": [
                 "image": "selenium/node-chrome:latest",
+                "region": "jnb",
                 "env": [
                     "SE_EVENT_BUS_HOST": seleniumGridHubBase,
                     "SE_NODE_HOST": seleniumGridNodeBase
@@ -85,25 +101,59 @@ internal struct SeleniumGridNodeAutoscaler {
 
         let createMachineContentEncoded = AnyEncodable(createMachineContent)
 
-        let res = try await client.post(.init(path: url)) { req in
+        let res = try await client.post(.init(stringLiteral: url)) { req in
             req.headers = .init([("Authorization", "Bearer \(flyAPIToken)")])
             try req.content.encode(createMachineContentEncoded, as: .json)
         }
         if res.status != .ok {
+            logger.info(
+                "Node machine creation failed.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                ]
+            )
             throw Abort(.internalServerError)
         }
+        logger.info(
+            "Node machine creation success.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+        try await Task.sleep(for: .seconds(20))
     }
 
     public func autoscale() async throws {
+        logger.info(
+            "Node autoscaler started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)")
+            ]
+        )
+        var count = 1
         while true {
+            logger.info(
+                "Looking for sessions in queue... (count: \(count))",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                ]
+            )
             let response = try await getGridSessionQueueReponse()
             let totalSessionsInQueue = response.data.sessionsInfo.sessionQueueRequests.count
             if totalSessionsInQueue > 0 {
+                logger.info(
+                    "Found a total of \(totalSessionsInQueue) pending sessions in queue.",
+                    metadata: [
+                        "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    ]
+                )
                 // create a selenium node fly machine for every session
                 for _ in 1 ... totalSessionsInQueue {
                     try await createNewSeleniumGridNodeFlyMachine()
                 }
             }
+            try await Task.sleep(for: .seconds(10))
+            count += 1
         }
     }
 }
