@@ -28,9 +28,9 @@ enum Entrypoint {
 
         do {
             try await configure(app)
-            try await app.execute()
+            // try await app.execute()
             // TODO: Create a vapor worker for the autoscaler initialization
-            let autoscaler = try SeleniumGridNodeAutoscaler(client: app.client)
+            let autoscaler = try SeleniumGridNodeAutoscaler(client: app.client, logger: app.logger)
             try await autoscaler.autoscale()
         } catch {
             app.logger.report(error: error)
