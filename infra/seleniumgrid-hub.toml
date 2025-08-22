@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for automa-web-core-seleniumgrid-hub on 2025-08-20T14:42:20+02:00
+# fly.toml app configuration file generated for automa-web-core-seleniumgrid-hub on 2025-08-22T14:12:27-06:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -7,24 +7,9 @@ app = 'automa-web-core-seleniumgrid-hub'
 primary_region = 'jnb'
 
 [build]
-  image = 'selenium/hub:latest'
-
-[[services]]
-  protocol = 'tcp'
-  internal_port = 4444
-  auto_stop_machines = 'stop'
-  auto_start_machines = true
-  min_machines_running = 0
-
-  [[services.ports]]
-    port = 80
-    handlers = ['http']
-
-  [[services.ports]]
-    port = 443
-    handlers = ['tls', 'http']
+image = 'selenium/hub:latest'
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 1
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 1

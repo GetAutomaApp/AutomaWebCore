@@ -1,0 +1,19 @@
+# fly.toml app configuration file generated for automa-web-core-seleniumgrid-node on 2025-08-22T14:13:12-06:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'automa-web-core-seleniumgrid-node'
+primary_region = 'jnb'
+
+[build]
+image = 'selenium/node-chrome:latest'
+
+[env]
+SE_EVENT_BUS_HOST = 'automa-web-core-seleniumgrid-hub.internal'
+SE_NODE_HOST = 'automa-web-core-seleniumgrid-node.internal'
+
+[[vm]]
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 1
