@@ -7,6 +7,7 @@ import Vapor
 
 internal struct SeleniumGridNodeAutoscaler {
     let seleniumGridHubBase: String
+    let seleniumGridNodeBase: String
 
     let client: any Client
     let logger: Logger
@@ -19,6 +20,14 @@ internal struct SeleniumGridNodeAutoscaler {
             throw Abort(.internalServerError)
         }
         seleniumGridHubBase = hubBase
+
+        guard
+            let nodeBase = Environment.get("SELENIUM_GRID_NODE_BASE")
+        else {
+            throw Abort(.internalServerError)
+        }
+
+        seleniumGridNodeBase = nodeBase
     }
 
     internal struct SeleniumGridGraphQLQuery: Content {
@@ -52,6 +61,20 @@ internal struct SeleniumGridNodeAutoscaler {
         return try res.content.decode(SessionQueueResponse.self)
     }
 
+    internal struct MachinePropertyConfiguration: Content {
+        let region: String
+        var config: MachineConfiguration
+    }
+
+    internal struct MachineConfiguration: Content {
+        let image: String
+        var skip_launch: Bool
+        var env: [String: String]
+        let auto_destroy: Bool
+        let restart: [String: String]
+        let guest: [String: String]
+    }
+
     private func createNewSeleniumGridNodeFlyMachine() async throws {
         logger.info(
             "Creating new node machine.",
@@ -73,54 +96,105 @@ internal struct SeleniumGridNodeAutoscaler {
 
         let url = "\(flyAPIURL.absoluteString)/v1/apps/automa-web-core-seleniumgrid-node/machines"
 
-        guard
-            let seleniumGridNodeBase = Environment.get("SELENIUM_GRID_NODE_BASE")
-        else {
-            throw Abort(.internalServerError)
-        }
-
-        let createMachineContent: [String: Any] = [
-            "config": [
-                "image": "selenium/node-chrome:latest",
-                "region": "jnb",
-                "env": [
+        let machineConfiguration = MachinePropertyConfiguration(
+            region: "jnb",
+            config: .init(
+                image: "selenium/node-chrome:latest",
+                skip_launch: true,
+                env: [
                     "SE_EVENT_BUS_HOST": seleniumGridHubBase,
                     "SE_NODE_HOST": seleniumGridNodeBase
                 ],
-                "auto_destroy": true,
-                "restart": [
+                auto_destroy: true,
+                restart: [
                     "policy": "always"
                 ],
-                "guest": [
+                guest: [
                     "cpu_kind": "shared",
-                    "cpus": 1,
-                    "memory_mb": 2_048
+                    "cpus": "1",
+                    "memory_mb": "2_048"
                 ]
-            ]
-        ]
-
-        let createMachineContentEncoded = AnyEncodable(createMachineContent)
+            )
+        )
 
         let res = try await client.post(.init(stringLiteral: url)) { req in
             req.headers = .init([("Authorization", "Bearer \(flyAPIToken)")])
-            try req.content.encode(createMachineContentEncoded, as: .json)
+            try req.content.encode(machineConfiguration)
         }
+
         if res.status != .ok {
+            let responseContent = try res.content.decode([String: String].self)
             logger.info(
                 "Node machine creation failed.",
                 metadata: [
                     "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "response_content": .string("\(responseContent)")
                 ]
             )
             throw Abort(.internalServerError)
         }
+
         logger.info(
             "Node machine creation success.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
             ]
         )
+
+        struct CreateMachineResponseContent: Content {
+            let id: String
+        }
+
+        let machineIdentifier = try res.content.decode(CreateMachineResponseContent.self).id
+        try await updateMachineNodeHostURLEnvironmentVariable(
+            machineIdentifier: machineIdentifier,
+            machineConfiguration: machineConfiguration,
+            flyAPIToken: flyAPIToken,
+            machineAPIURL: url
+        )
+
         try await Task.sleep(for: .seconds(20))
+    }
+
+    private func updateMachineNodeHostURLEnvironmentVariable(
+        machineIdentifier: String,
+        machineConfiguration: MachinePropertyConfiguration,
+        flyAPIToken: String,
+        machineAPIURL url: String
+    ) async throws {
+        var updatedConfiguration = machineConfiguration
+
+        updatedConfiguration.config.env = [
+            "SE_EVENT_BUS_HOST": seleniumGridHubBase,
+            "SE_NODE_HOST": "\(machineIdentifier).vm\(seleniumGridNodeBase)"
+        ]
+        updatedConfiguration.config.skip_launch = false
+
+        let res = try await client.post(.init(stringLiteral: "\(url)/\(machineIdentifier)")) { req in
+            req.headers = .init([("Authorization", "Bearer \(flyAPIToken)")])
+            try req.content.encode(machineConfiguration.config)
+        }
+
+        if res.status != .ok {
+            let responseContent = try res.content.decode([String: String].self)
+            logger.info(
+                "Failed to updated machine node 'SE_NODE_HOST' environment variable to URL of the machine",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                    "response_content": .string("\(responseContent)"),
+                    "machine_identifier": .string(machineIdentifier)
+                ]
+            )
+            throw Abort(.internalServerError)
+        }
+
+        logger.info(
+            "Updating node 'SE_NODE_HOST' environment variable success. Machine will start automatically.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "machine_identifier": .string(machineIdentifier)
+            ]
+        )
     }
 
     public func autoscale() async throws {
