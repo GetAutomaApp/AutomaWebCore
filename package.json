@@ -4,6 +4,7 @@
   "description": "Base Template for Automa",
   "main": "index.js",
   "scripts": {
+    "autoscaler": "cd ./SeleniumGridNodeMachineAutoscaler/ ; swift build ; swift run SeleniumGridNodeMachineAutoscaler",
     "config": "./.dotfiles/config.sh",
     "install:swiftlint": "brew install swiftlint",
     "install:swiftformat": "brew install swiftformat",

@@ -1,11 +1,11 @@
-// SeleniumGridNodeMachineAutoDestroyer.swift
+// SeleniumGridNodeAutoDestroyer.swift
 // Copyright (c) 2025 GetAutomaApp
 // All source code and related assets are the property of GetAutomaApp.
 // All rights reserved.
 
 import Vapor
 
-internal class SeleniumGridNodeMachineAutoDestroyer: SeleniumGridNodeAppInteractor {
+internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
     let client: any Client
     let logger: Logger
 
@@ -14,11 +14,11 @@ internal class SeleniumGridNodeMachineAutoDestroyer: SeleniumGridNodeAppInteract
         self.logger = logger
     }
 
-    public func start() async throws {
-        try await autoDestroyAllOffNodeMachines()
+    public func start(cyclePauseDuration: Int) async throws {
+        try await autoDestroyAllOffNodeMachines(cyclePauseDuration: cyclePauseDuration)
     }
 
-    private func autoDestroyAllOffNodeMachines(cycleCount: Int = 1) async throws {
+    private func autoDestroyAllOffNodeMachines(cyclePauseDuration: Int, cycleCount: Int = 1) async throws {
         logger.info(
             "Auto destroy all off node machines cycle started (cycle: \(cycleCount))",
             metadata: [
@@ -29,8 +29,8 @@ internal class SeleniumGridNodeMachineAutoDestroyer: SeleniumGridNodeAppInteract
         let allMachines = try await getListOfAllNodeMachines()
         try await destroyAllOffNodeMachines(allMachines)
 
-        try await Task.sleep(for: .seconds(10))
-        try await autoDestroyAllOffNodeMachines(cycleCount: cycleCount + 1)
+        try await Task.sleep(for: .seconds(cyclePauseDuration))
+        try await autoDestroyAllOffNodeMachines(cyclePauseDuration: cyclePauseDuration, cycleCount: cycleCount + 1)
     }
 
     private func getListOfAllNodeMachines() async throws -> [NodeMachine] {
@@ -76,6 +76,10 @@ internal class SeleniumGridNodeMachineAutoDestroyer: SeleniumGridNodeAppInteract
     }
 
     private func destroyAllOffNodeMachines(_ allMachines: [NodeMachine]) async throws {
+        if allMachines.count == 0 {
+            return
+        }
+
         logger.info(
             "Destroying all off node machines started.",
             metadata: [
