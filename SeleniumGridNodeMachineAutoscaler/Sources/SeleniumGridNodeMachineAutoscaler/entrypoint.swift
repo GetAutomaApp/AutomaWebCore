@@ -28,10 +28,15 @@ enum Entrypoint {
 
         do {
             try await configure(app)
-            // try await app.execute()
-            // TODO: Create a vapor worker for the autoscaler initialization
-            let autoscaler = try SeleniumGridNodeAutoscaler(client: app.client, logger: app.logger)
-            try await autoscaler.autoscale()
+
+            Task {
+                let autoscaler = try SeleniumGridNodeAutoscaler(client: app.client, logger: app.logger)
+                try await autoscaler.autoscale()
+            }
+            Task {
+                let autoDestroyer = try SeleniumGridNodeMachineAutoDestroyer(client: app.client, logger: app.logger)
+                try await autoDestroyer.start()
+            }
         } catch {
             app.logger.report(error: error)
             try? await app.asyncShutdown()
