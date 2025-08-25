@@ -28,15 +28,21 @@ enum Entrypoint {
 
         do {
             try await configure(app)
+            // try await app.execute()
 
-            Task {
-                let autoscaler = try SeleniumGridNodeAutoscaler(client: app.client, logger: app.logger)
-                try await autoscaler.autoscale()
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    let autoscaler = try SeleniumGridNodeAutoscaler(client: app.client, logger: app.logger)
+                    try await autoscaler.autoscale(cyclePauseDuration: 10)
+                }
+
+                group.addTask {
+                    let autoDestroyer = try SeleniumGridNodeAutoDestroyer(client: app.client, logger: app.logger)
+                    try await autoDestroyer.start(cyclePauseDuration: 600)
+                }
+                try await group.waitForAll()
             }
-            Task {
-                let autoDestroyer = try SeleniumGridNodeMachineAutoDestroyer(client: app.client, logger: app.logger)
-                try await autoDestroyer.start()
-            }
+
         } catch {
             app.logger.report(error: error)
             try? await app.asyncShutdown()

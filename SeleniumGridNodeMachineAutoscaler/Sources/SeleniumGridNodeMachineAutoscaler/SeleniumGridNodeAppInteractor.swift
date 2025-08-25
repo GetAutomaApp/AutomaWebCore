@@ -18,20 +18,13 @@ internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase 
 
     init() throws {
         guard
-            let urlString = Environment.get("FLY_API_URL"),
-            let flyAPIURL = URL(string: urlString)
+            let flyAPIURL = try URL(string: Environment.getOrThrow("FLY_API_URL"))
         else {
             throw Abort(.internalServerError)
         }
+
         nodesAppMachineAPIURL = "\(flyAPIURL.absoluteString)/v1/apps/automa-web-core-seleniumgrid-node/machines"
-
-        guard
-            let flyAPIToken = Environment.get("SELENIUM_GRID_NODE_FLY_APP_API_TOKEN")
-        else {
-            throw Abort(.internalServerError)
-        }
-        self.flyAPIToken = flyAPIToken
-
+        flyAPIToken = try Environment.getOrThrow("SELENIUM_GRID_NODE_FLY_APP_API_TOKEN")
         authHeader = [("Authorization", "Bearer \(flyAPIToken)")]
     }
 }

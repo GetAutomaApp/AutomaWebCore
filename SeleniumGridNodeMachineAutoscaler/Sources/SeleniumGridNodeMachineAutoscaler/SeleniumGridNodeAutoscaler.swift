@@ -3,7 +3,6 @@
 // All source code and related assets are the property of GetAutomaApp.
 // All rights reserved.
 
-import AnyCodable
 import Vapor
 
 internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
@@ -16,26 +15,15 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
     init(client: any Client, logger: Logger) throws {
         self.client = client
         self.logger = logger
-        guard let hubBase = Environment.get("SELENIUM_GRID_HUB_BASE")
-        else {
-            throw Abort(.internalServerError)
-        }
-        seleniumGridHubBase = hubBase
-
-        guard
-            let nodeBase = Environment.get("SELENIUM_GRID_NODE_BASE")
-        else {
-            throw Abort(.internalServerError)
-        }
-
-        seleniumGridNodeBase = nodeBase
+        seleniumGridHubBase = try Environment.getOrThrow("SELENIUM_GRID_HUB_BASE")
+        seleniumGridNodeBase = try Environment.getOrThrow("SELENIUM_GRID_NODE_BASE")
     }
 
-    public func autoscale() async throws {
-        try await autoscaleNodes()
+    public func autoscale(cyclePauseDuration: Int) async throws {
+        try await autoscaleNodes(cyclePauseDuration: cyclePauseDuration)
     }
 
-    private func autoscaleNodes(cycleCount: Int = 1) async throws {
+    private func autoscaleNodes(cyclePauseDuration: Int, cycleCount: Int = 1) async throws {
         logger.info(
             "Node autoscaler cycle started (cycle: \(cycleCount)).",
             metadata: [
@@ -62,8 +50,8 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
                 try await createNewSeleniumGridNodeFlyMachine()
             }
         }
-        try await Task.sleep(for: .seconds(10))
-        try await autoscaleNodes(cycleCount: cycleCount + 1)
+        try await Task.sleep(for: .seconds(cyclePauseDuration))
+        try await autoscaleNodes(cyclePauseDuration: cyclePauseDuration, cycleCount: cycleCount + 1)
     }
 
     private func getGridSessionQueueReponse() async throws -> SessionQueueResponse {
