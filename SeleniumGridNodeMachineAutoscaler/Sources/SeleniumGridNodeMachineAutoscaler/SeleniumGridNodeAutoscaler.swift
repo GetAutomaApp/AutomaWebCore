@@ -68,11 +68,32 @@ internal struct SeleniumGridNodeAutoscaler {
 
     internal struct MachineConfiguration: Content {
         let image: String
-        var skip_launch: Bool
+        var skipLaunch: Bool
         var env: [String: String]
-        let auto_destroy: Bool
+        let autoDestroy: Bool
         let restart: [String: String]
-        let guest: [String: String]
+        let guest: MachineGuessConfiguration
+
+        public enum CodingKeys: String, CodingKey {
+            case image
+            case skipLaunch = "skip_launch"
+            case env
+            case autoDestroy = "auto_destroy"
+            case restart
+            case guest
+        }
+    }
+
+    internal struct MachineGuessConfiguration: Content {
+        let cpuKind: String
+        let cpus: Int
+        let memoryMb: Int
+
+        public enum CodingKeys: String, CodingKey {
+            case cpuKind = "cpu_kind"
+            case cpus
+            case memoryMb = "memory_mb"
+        }
     }
 
     private func createNewSeleniumGridNodeFlyMachine() async throws {
@@ -100,20 +121,13 @@ internal struct SeleniumGridNodeAutoscaler {
             region: "jnb",
             config: .init(
                 image: "selenium/node-chrome:latest",
-                skip_launch: true,
-                env: [
-                    "SE_EVENT_BUS_HOST": seleniumGridHubBase,
-                    "SE_NODE_HOST": seleniumGridNodeBase
-                ],
-                auto_destroy: true,
+                skipLaunch: true,
+                env: [:],
+                autoDestroy: false,
                 restart: [
                     "policy": "always"
                 ],
-                guest: [
-                    "cpu_kind": "shared",
-                    "cpus": "1",
-                    "memory_mb": "2_048"
-                ]
+                guest: .init(cpuKind: "shared", cpus: 1, memoryMb: 2_048)
             )
         )
 
@@ -166,13 +180,21 @@ internal struct SeleniumGridNodeAutoscaler {
 
         updatedConfiguration.config.env = [
             "SE_EVENT_BUS_HOST": seleniumGridHubBase,
-            "SE_NODE_HOST": "\(machineIdentifier).vm\(seleniumGridNodeBase)"
+            "SE_NODE_HOST": "\(machineIdentifier).vm.\(seleniumGridNodeBase)"
         ]
-        updatedConfiguration.config.skip_launch = false
+
+        updatedConfiguration.config.skipLaunch = false
+        logger.info(
+            "Machine updated environment.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "updated_configuration": .string("\(updatedConfiguration.config)")
+            ]
+        )
 
         let res = try await client.post(.init(stringLiteral: "\(url)/\(machineIdentifier)")) { req in
             req.headers = .init([("Authorization", "Bearer \(flyAPIToken)")])
-            try req.content.encode(machineConfiguration.config)
+            try req.content.encode(["config": updatedConfiguration.config])
         }
 
         if res.status != .ok {
@@ -188,11 +210,18 @@ internal struct SeleniumGridNodeAutoscaler {
             throw Abort(.internalServerError)
         }
 
+        guard
+            let body = res.body
+        else {
+            throw Abort(.internalServerError)
+        }
+
         logger.info(
             "Updating node 'SE_NODE_HOST' environment variable success. Machine will start automatically.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "machine_identifier": .string(machineIdentifier)
+                "machine_identifier": .string(machineIdentifier),
+                "update_machine_response": .string(String(buffer: body))
             ]
         )
     }
