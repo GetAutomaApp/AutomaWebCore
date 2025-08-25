@@ -8,11 +8,13 @@ import Vapor
 internal protocol SeleniumGridNodeAppInteractorBase {
     var nodesAppMachineAPIURL: String { get }
     var flyAPIToken: String { get }
+    var authHeader: [(String, String)] { get }
 }
 
 internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase {
     let nodesAppMachineAPIURL: String
     let flyAPIToken: String
+    let authHeader: [(String, String)]
 
     init() throws {
         guard
@@ -29,5 +31,7 @@ internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase 
             throw Abort(.internalServerError)
         }
         self.flyAPIToken = flyAPIToken
+
+        authHeader = [("Authorization", "Bearer \(flyAPIToken)")]
     }
 }

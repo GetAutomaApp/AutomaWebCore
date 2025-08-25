@@ -32,47 +32,42 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
     }
 
     public func autoscale() async throws {
+        try await autoscaleNodes()
+    }
+
+    private func autoscaleNodes(cycleCount: Int = 1) async throws {
         logger.info(
-            "Node autoscaler started.",
+            "Node autoscaler cycle started (cycle: \(cycleCount)).",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)")
             ]
         )
-        var count = 1
-        while true {
-            logger.info(
-                "Looking for sessions in queue... (count: \(count))",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                ]
-            )
-            let response = try await getGridSessionQueueReponse()
-            let totalSessionsInQueue = response.data.sessionsInfo.sessionQueueRequests.count
-            if totalSessionsInQueue > 0 {
-                logger.info(
-                    "Found a total of \(totalSessionsInQueue) pending sessions in queue.",
-                    metadata: [
-                        "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    ]
-                )
-                // create a selenium node fly machine for every session
-                for _ in 1 ... totalSessionsInQueue {
-                    try await createNewSeleniumGridNodeFlyMachine()
-                }
-            }
-            try await Task.sleep(for: .seconds(10))
-            count += 1
-        }
-    }
-
-    private func getGridSessionQueueReponse() async throws -> SessionQueueResponse {
-        let url = "http://\(seleniumGridHubBase):4444/graphql"
         logger.info(
-            "Session Queue URL: \(url).",
+            "Looking for sessions in queue.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
             ]
         )
+        let response = try await getGridSessionQueueReponse()
+        let totalSessionsInQueue = response.data.sessionsInfo.sessionQueueRequests.count
+        if totalSessionsInQueue > 0 {
+            logger.info(
+                "Found a total of \(totalSessionsInQueue) pending sessions in queue.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                ]
+            )
+            // create a selenium node fly machine for every session
+            for _ in 1 ... totalSessionsInQueue {
+                try await createNewSeleniumGridNodeFlyMachine()
+            }
+        }
+        try await Task.sleep(for: .seconds(10))
+        try await autoscaleNodes(cycleCount: cycleCount + 1)
+    }
+
+    private func getGridSessionQueueReponse() async throws -> SessionQueueResponse {
+        let url = "http://\(seleniumGridHubBase):4444/graphql"
         let res = try await client.post(.init(stringLiteral: url)) { req in
             try req.content
                 .encode(SeleniumGridGraphQLQuery(query: "query SessionsInfo { sessionsInfo { sessionQueueRequests }}"))
@@ -103,7 +98,7 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
         )
 
         let res = try await client.post(.init(stringLiteral: nodesAppMachineAPIURL)) { req in
-            req.headers = .init([("Authorization", "Bearer \(flyAPIToken)")])
+            req.headers = .init(authHeader)
             try req.content.encode(machineConfiguration)
         }
 
@@ -143,7 +138,7 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
     private func updateMachineNodeHostURLEnvironmentVariable(
         machineIdentifier: String,
         machineConfiguration: MachinePropertyConfiguration,
-        flyAPIToken: String
+        flyAPIToken _: String
     ) async throws {
         var updatedConfiguration = machineConfiguration
 
@@ -163,7 +158,7 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
         )
 
         let res = try await client.post(.init(stringLiteral: "\(nodesAppMachineAPIURL)/\(machineIdentifier)")) { req in
-            req.headers = .init([("Authorization", "Bearer \(flyAPIToken)")])
+            req.headers = .init(authHeader)
             try req.content.encode(["config": updatedConfiguration.config])
         }
 
