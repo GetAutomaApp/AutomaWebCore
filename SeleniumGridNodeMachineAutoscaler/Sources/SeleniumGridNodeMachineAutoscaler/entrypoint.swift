@@ -38,8 +38,14 @@ enum Entrypoint {
 
                 group.addTask {
                     let autoDestroyer = try SeleniumGridNodeAutoDestroyer(client: app.client, logger: app.logger)
-                    try await autoDestroyer.start(cyclePauseDuration: 600)
+                    try await autoDestroyer.autoDestroyAllOffNodeMachines(cyclePauseDuration: 10)
                 }
+
+                group.addTask {
+                    let autoDestroyer = try SeleniumGridNodeAutoDestroyer(client: app.client, logger: app.logger)
+                    try await autoDestroyer.autoDestroyAllOldNodeMachines(cyclePauseDuration: 10)
+                }
+
                 try await group.waitForAll()
             }
 
