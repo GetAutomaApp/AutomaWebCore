@@ -189,7 +189,7 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
         if res.status != .ok {
             let responseContent = try res.content.decode([String: String].self)
             logger.info(
-                "Failed to delete off machine.",
+                "Failed to delete machine.",
                 metadata: [
                     "to": .string("\(String(describing: Self.self)).\(#function)"),
                     "response_content": .string("\(responseContent)"),
@@ -200,7 +200,7 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
         }
 
         logger.info(
-            "Successfully deleted off node machine.",
+            "Successfully deleted node machine.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
                 "deletd_node_machine_id": .string(id)
