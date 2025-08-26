@@ -14,11 +14,36 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
         self.logger = logger
     }
 
-    public func start(cyclePauseDuration: Int) async throws {
-        try await autoDestroyAllOffNodeMachines(cyclePauseDuration: cyclePauseDuration)
+    public func autoDestroyAllOldNodeMachines(cyclePauseDuration: Int) async throws {
+        try await autoDestroyAllOldNodeMachines(cycleCount: 1, cyclePauseDuration: cyclePauseDuration)
     }
 
-    private func autoDestroyAllOffNodeMachines(cyclePauseDuration: Int, cycleCount: Int = 1) async throws {
+    public func autoDestroyAllOffNodeMachines(cyclePauseDuration: Int) async throws {
+        try await autoDestroyAllOffNodeMachines(cycleCount: 1, cyclePauseDuration: cyclePauseDuration)
+    }
+
+    private func autoDestroyAllOldNodeMachines(
+        cycleCount: Int,
+        cyclePauseDuration: Int
+    ) async throws {
+        logger.info(
+            "Auto destroy all old node machines cycle started (cycle: \(cycleCount))",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+
+        let allMachines = try await getListOfAllNodeMachines()
+        try await destroyAllOldNodeMachines(allMachines)
+
+        try await Task.sleep(for: .seconds(cyclePauseDuration))
+        try await autoDestroyAllOldNodeMachines(
+            cycleCount: cycleCount + 1,
+            cyclePauseDuration: cyclePauseDuration
+        )
+    }
+
+    private func autoDestroyAllOffNodeMachines(cycleCount: Int, cyclePauseDuration: Int) async throws {
         logger.info(
             "Auto destroy all off node machines cycle started (cycle: \(cycleCount))",
             metadata: [
@@ -30,7 +55,40 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
         try await destroyAllOffNodeMachines(allMachines)
 
         try await Task.sleep(for: .seconds(cyclePauseDuration))
-        try await autoDestroyAllOffNodeMachines(cyclePauseDuration: cyclePauseDuration, cycleCount: cycleCount + 1)
+        try await autoDestroyAllOffNodeMachines(cycleCount: cycleCount + 1, cyclePauseDuration: cyclePauseDuration)
+    }
+
+    private func destroyAllOldNodeMachines(_ allMachines: [NodeMachine]) async throws {
+        if allMachines.count == 0 {
+            return
+        }
+
+        let machinesToStop = allMachines.filter { machine in
+            let identifyAsOldAt = machine.createdAt.addingTimeInterval(60 * 60)
+            return Date() > identifyAsOldAt
+        }
+
+        if machinesToStop.count == 0 {
+            logger.info(
+                "None of the \(allMachines.count) machines in a considered old. No machines will be destroyed.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                ]
+            )
+            return
+        }
+
+        logger.info(
+            "Destroying all old node machines started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "total_machines_to_destroy": .string(String(machinesToStop.count))
+            ]
+        )
+
+        for machine in machinesToStop {
+            try await deleteNodeMachine(id: machine.id)
+        }
     }
 
     private func getListOfAllNodeMachines() async throws -> [NodeMachine] {
@@ -73,6 +131,13 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
     internal struct NodeMachine: Content {
         let id: String
         let state: String
+        let createdAt: Date
+
+        public enum CodingKeys: String, CodingKey {
+            case id
+            case state
+            case createdAt = "created_at"
+        }
     }
 
     private func destroyAllOffNodeMachines(_ allMachines: [NodeMachine]) async throws {
@@ -80,22 +145,36 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
             return
         }
 
+        let machinesToStop = allMachines.filter { machine in
+            ["stopped", "suspended"].contains(machine.state)
+        }
+
+        if machinesToStop.count == 0 {
+            logger.info(
+                "None of the \(allMachines.count) machines in a stopped or suspended state. No machines will be destroyed.",
+                metadata: [
+                    "to": .string("\(String(describing: Self.self)).\(#function)"),
+                ]
+            )
+            return
+        }
+
         logger.info(
             "Destroying all off node machines started.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "total_machines_to_destroy": .string(String(machinesToStop.count))
             ]
         )
-        for machine in allMachines {
-            if ["stopped", "suspended"].contains(machine.state) {
-                try await deleteNodeMachine(id: machine.id)
-            }
+
+        for machine in machinesToStop {
+            try await deleteNodeMachine(id: machine.id)
         }
     }
 
     private func deleteNodeMachine(id: String) async throws {
         logger.info(
-            "Deleting off node machine started.",
+            "Deleting node machine started.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
                 "node_machine_id_to_delete": .string(id)
