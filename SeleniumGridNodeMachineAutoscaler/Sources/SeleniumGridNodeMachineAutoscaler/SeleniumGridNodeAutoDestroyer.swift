@@ -6,14 +6,6 @@
 import Vapor
 
 internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
-    let client: any Client
-    let logger: Logger
-
-    init(client: any Client, logger: Logger) throws {
-        self.client = client
-        self.logger = logger
-    }
-
     public func autoDestroyAllOldNodeMachines(cyclePauseDuration: Int) async throws {
         try await autoDestroyAllOldNodeMachines(cycleCount: 1, cyclePauseDuration: cyclePauseDuration)
     }
@@ -88,55 +80,6 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
 
         for machine in machinesToStop {
             try await deleteNodeMachine(id: machine.id)
-        }
-    }
-
-    private func getListOfAllNodeMachines() async throws -> [NodeMachine] {
-        logger.info(
-            "Getting a list of all machines.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-            ]
-        )
-        let res = try await client.get(
-            .init(stringLiteral: nodesAppMachineAPIURL),
-            headers: .init(authHeader)
-        )
-
-        if res.status != .ok {
-            let responseContent = try res.content.decode([String: String].self)
-            logger.info(
-                "Failed to get a list of all machines in nodes app",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    "response_content": .string("\(responseContent)"),
-                ]
-            )
-            throw Abort(.internalServerError)
-        }
-
-        let allMachines = try res.content.decode([NodeMachine].self)
-
-        logger.info(
-            "Got list of all machines.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "total_machines": .string(String(allMachines.count))
-            ]
-        )
-
-        return allMachines
-    }
-
-    internal struct NodeMachine: Content {
-        let id: String
-        let state: String
-        let createdAt: Date
-
-        public enum CodingKeys: String, CodingKey {
-            case id
-            case state
-            case createdAt = "created_at"
         }
     }
 

@@ -9,14 +9,12 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
     let seleniumGridHubBase: String
     let seleniumGridNodeBase: String
 
-    let client: any Client
-    let logger: Logger
+    let maxNodeMachinesAllowed: Int = 10
 
     init(client: any Client, logger: Logger) throws {
-        self.client = client
-        self.logger = logger
         seleniumGridHubBase = try Environment.getOrThrow("SELENIUM_GRID_HUB_BASE")
         seleniumGridNodeBase = try Environment.getOrThrow("SELENIUM_GRID_NODE_BASE")
+        try super.init(logger: logger, client: client)
     }
 
     public func autoscale(cyclePauseDuration: Int) async throws {
@@ -30,12 +28,11 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
                 "to": .string("\(String(describing: Self.self)).\(#function)")
             ]
         )
-        logger.info(
-            "Looking for sessions in queue.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-            ]
-        )
+
+        if try await maxNodeMachinesReached() {
+            return
+        }
+
         let response = try await getGridSessionQueueReponse()
         let totalSessionsInQueue = response.data.sessionsInfo.sessionQueueRequests.count
         if totalSessionsInQueue > 0 {
@@ -54,7 +51,30 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
         try await autoscaleNodes(cyclePauseDuration: cyclePauseDuration, cycleCount: cycleCount + 1)
     }
 
+    private func maxNodeMachinesReached() async throws -> Bool {
+        let totalNodeMachines = try await getListOfAllNodeMachines().count
+
+        if totalNodeMachines < maxNodeMachinesAllowed {
+            return false
+        }
+
+        logger.info(
+            "The threshold of \(maxNodeMachinesAllowed) running node machines reached. No additional node machines will be created.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "total_node_machines": .string(String(totalNodeMachines))
+            ]
+        )
+        return true
+    }
+
     private func getGridSessionQueueReponse() async throws -> SessionQueueResponse {
+        logger.info(
+            "Looking for sessions in queue.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
         let url = "http://\(seleniumGridHubBase):4444/graphql"
         let res = try await client.post(.init(stringLiteral: url)) { req in
             try req.content

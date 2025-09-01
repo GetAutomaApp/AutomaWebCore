@@ -4,7 +4,6 @@
   "description": "Base Template for Automa",
   "main": "index.js",
   "scripts": {
-    "autoscaler": "cd ./SeleniumGridNodeMachineAutoscaler/ ; swift build ; swift run SeleniumGridNodeMachineAutoscaler",
     "config": "./.dotfiles/config.sh",
     "install:swiftlint": "brew install swiftlint",
     "install:swiftformat": "brew install swiftformat",
@@ -12,7 +11,15 @@
     "install:flyctl": "brew install flyctl",
     "format": "swiftformat .",
     "lint": "swiftlint --config=.swiftlint.yml .",
-    "update:submodules": "git submodule foreach --recursive 'branch=$(git remote show origin | awk \"/HEAD branch/ {print \\$NF}\"); git checkout $branch && git pull origin $branch' && CHANGED=$(git status --porcelain | grep '^ M \\.dotfiles' || true) && if [ -n \"$CHANGED\" ]; then npm run config; fi && git add -A && git commit -m \"chore: update submodules\" || echo 'No changes to commit'"
+    "update:submodules": "git submodule foreach --recursive 'branch=$(git remote show origin | awk \"/HEAD branch/ {print \\$NF}\"); git checkout $branch && git pull origin $branch' && CHANGED=$(git status --porcelain | grep '^ M \\.dotfiles' || true) && if [ -n \"$CHANGED\" ]; then npm run config; fi && git add -A && git commit -m \"chore: update submodules\" || echo 'No changes to commit'",
+    "compose:up": "npm run compose -- up -d",
+    "compose:build": "npm run compose -- build",
+    "compose:build:no-cache": "npm run compose -- build --no-cache",
+    "compose:build-and-up": "npx npm-run-all --sequential compose:build compose:up",
+    "compose:build-no-cache-and-up": "npx npm-run-all --sequential compose:build:no-cache compose:up",
+    "compose:down": "npm run compose -- down",
+    "compose:ps": "npm run compose -- ps -a",
+    "compose": "cd ./SeleniumGridNodeMachineAutoscaler ; docker-compose"
   },
   "repository": {
     "type": "git",

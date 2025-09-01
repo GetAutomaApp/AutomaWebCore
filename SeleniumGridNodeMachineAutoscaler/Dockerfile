@@ -18,7 +18,7 @@ WORKDIR /build
 # files do not change.
 COPY ./Package.* ./
 RUN swift package resolve \
-        $([ -f ./Package.resolved ] && echo "--force-resolved-versions" || true)
+    $([ -f ./Package.resolved ] && echo "--force-resolved-versions" || true)
 
 # Copy entire repo into container
 COPY . .
@@ -26,9 +26,9 @@ COPY . .
 # Build the application, with optimizations, with static linking, and using jemalloc
 # N.B.: The static version of jemalloc is incompatible with the static Swift runtime.
 RUN swift build -c release \
-        --product SeleniumGridNodeMachineAutoscaler \
-        --static-swift-stdlib \
-        -Xlinker -ljemalloc
+    --product SeleniumGridNodeMachineAutoscaler \
+    --static-swift-stdlib \
+    -Xlinker -ljemalloc
 
 # Switch to the staging area
 WORKDIR /staging
@@ -57,13 +57,13 @@ RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
     && apt-get -q update \
     && apt-get -q dist-upgrade -y \
     && apt-get -q install -y \
-      libjemalloc2 \
-      ca-certificates \
-      tzdata \
-# If your app or its dependencies import FoundationNetworking, also install `libcurl4`.
-      # libcurl4 \
-# If your app or its dependencies import FoundationXML, also install `libxml2`.
-      # libxml2 \
+    libjemalloc2 \
+    ca-certificates \
+    tzdata \
+    # If your app or its dependencies import FoundationNetworking, also install `libcurl4`.
+    # libcurl4 \
+    # If your app or its dependencies import FoundationXML, also install `libxml2`.
+    # libxml2 \
     && rm -r /var/lib/apt/lists/*
 
 # Create a vapor user and group with /app as its home directory
@@ -85,5 +85,4 @@ USER vapor:vapor
 EXPOSE 8080
 
 # Start the Vapor service when the image is run, default to listening on 8080 in production environment
-ENTRYPOINT ["./SeleniumGridNodeMachineAutoscaler"]
-CMD ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "8080"]
+CMD /bin/bash -c "eval './SeleniumGridNodeMachineAutoscaler $RUN_COMMAND'"
