@@ -3,6 +3,7 @@
 // All source code and related assets are the property of GetAutomaApp.
 // All rights reserved.
 
+import AutomaUtilities
 import Vapor
 
 internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
@@ -105,8 +106,8 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
             )
         )
 
-        let res = try await client.post(.init(stringLiteral: nodesAppMachineAPIURL)) { req in
-            req.headers = .init(authHeader)
+        let res = try await client.post(.init(stringLiteral: payload.nodesAppMachineAPIURL)) { req in
+            req.headers = .init(payload.flyAPIHTTPRequestAuthenticationHeader.getHeaderList())
             try req.content.encode(machineConfiguration)
         }
 
@@ -137,7 +138,7 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
         try await updateMachineNodeHostURLEnvironmentVariable(
             machineIdentifier: machineIdentifier,
             machineConfiguration: machineConfiguration,
-            flyAPIToken: flyAPIToken
+            flyAPIToken: payload.flyAPIToken
         )
 
         try await Task.sleep(for: .seconds(20))
@@ -165,10 +166,11 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
             ]
         )
 
-        let res = try await client.post(.init(stringLiteral: "\(nodesAppMachineAPIURL)/\(machineIdentifier)")) { req in
-            req.headers = .init(authHeader)
-            try req.content.encode(["config": updatedConfiguration.config])
-        }
+        let res = try await client
+            .post(.init(stringLiteral: "\(payload.nodesAppMachineAPIURL)/\(machineIdentifier)")) { req in
+                req.headers = .init(payload.flyAPIHTTPRequestAuthenticationHeader.getHeaderList())
+                try req.content.encode(["config": updatedConfiguration.config])
+            }
 
         if res.status != .ok {
             let responseContent = try res.content.decode([String: String].self)

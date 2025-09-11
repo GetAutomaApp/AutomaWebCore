@@ -50,7 +50,9 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
         try await autoDestroyAllOffNodeMachines(cycleCount: cycleCount + 1, cyclePauseDuration: cyclePauseDuration)
     }
 
-    private func destroyAllOldNodeMachines(_ allMachines: [NodeMachine]) async throws {
+    private func destroyAllOldNodeMachines(_ allMachines: [SeleniumGridNodeAppNodeMachinesFinder
+            .NodeMachine]) async throws
+    {
         if allMachines.count == 0 {
             return
         }
@@ -83,7 +85,9 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
         }
     }
 
-    private func destroyAllOffNodeMachines(_ allMachines: [NodeMachine]) async throws {
+    private func destroyAllOffNodeMachines(_ allMachines: [SeleniumGridNodeAppNodeMachinesFinder
+            .NodeMachine]) async throws
+    {
         if allMachines.count == 0 {
             return
         }
@@ -125,8 +129,8 @@ internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAppInteractor {
         )
 
         let res = try await client.delete(
-            .init(stringLiteral: "\(nodesAppMachineAPIURL)/\(id)?force=true"),
-            headers: .init(authHeader)
+            .init(stringLiteral: "\(payload.nodesAppMachineAPIURL)/\(id)?force=true"),
+            headers: .init(payload.flyAPIHTTPRequestAuthenticationHeader.getHeaderList())
         )
 
         if res.status != .ok {
