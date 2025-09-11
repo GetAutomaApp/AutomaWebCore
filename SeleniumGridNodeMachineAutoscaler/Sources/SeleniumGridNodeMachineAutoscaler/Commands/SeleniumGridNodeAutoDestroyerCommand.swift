@@ -23,13 +23,14 @@ struct SeleniumGridNodeAutoDestroyerCommand: AsyncCommand {
     func run(using context: CommandContext, signature: Signature) async throws {
         let destroyer = try SeleniumGridNodeAutoDestroyer(
             logger: context.application.logger,
-            client: context.application.client
+            client: context.application.client,
+            cyclePauseDurationSeconds: 10
         )
         switch signature.type {
         case "offMachines":
-            try await destroyer.autoDestroyAllOffNodeMachines(cyclePauseDuration: 10)
+            try await destroyer.autoDestroyAllOffNodeMachines()
         case "oldMachines":
-            try await destroyer.autoDestroyAllOldNodeMachines(cyclePauseDuration: 10)
+            try await destroyer.autoDestroyAllOldNodeMachines()
         default:
             throw Abort(
                 .internalServerError,

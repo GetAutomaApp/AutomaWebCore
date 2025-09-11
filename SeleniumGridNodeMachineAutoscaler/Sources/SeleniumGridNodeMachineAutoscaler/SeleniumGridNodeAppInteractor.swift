@@ -6,26 +6,9 @@
 import AutomaUtilities
 import Vapor
 
-internal protocol SeleniumGridNodeAppInteractorBase {
-    var payload: SeleniumGridNodeAppInteractorPayload { get }
-}
-
-internal struct SeleniumGridNodeAppInteractorPayload: Content {
-    let nodesAppMachineAPIURL: String
-    let flyAPIToken: String
-    let flyAPIHTTPRequestAuthenticationHeader: FlyAPIHTTPRequestAuthenticationHeader
-
-    internal struct FlyAPIHTTPRequestAuthenticationHeader: Content {
-        let Authorization: String
-
-        func getHeaderList() -> [(String, String)] {
-            return [("Authorization", Authorization)]
-        }
-    }
-}
-
 internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase {
     let payload: SeleniumGridNodeAppInteractorPayload
+    let flyAPIHTTPRequestAuthenticationHeader: [(String, String)]
     let logger: Logger
     let client: any Client
 
@@ -36,10 +19,11 @@ internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase 
         let flyAPIURL = try URL.fromString(payload: .init(string: Environment.getOrThrow("FLY_API_URL")))
         let flyAPIToken = try Environment.getOrThrow("SELENIUM_GRID_NODE_FLY_APP_API_TOKEN")
 
+        flyAPIHTTPRequestAuthenticationHeader = [("Authorization", "Bearer \(flyAPIToken)")]
+
         payload = .init(
             nodesAppMachineAPIURL: "\(flyAPIURL.absoluteString)/v1/apps/automa-web-core-seleniumgrid-node/machines",
-            flyAPIToken: flyAPIToken,
-            flyAPIHTTPRequestAuthenticationHeader: .init(Authorization: "Bearer \(flyAPIToken)")
+            flyAPIToken: flyAPIToken
         )
     }
 
@@ -47,95 +31,21 @@ internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase 
         try await SeleniumGridNodeAppNodeMachinesFinder(
             logger: logger,
             client: client,
-            payload: payload
+            payload: payload,
+            flyAPIHTTPRequestAuthenticationHeader: flyAPIHTTPRequestAuthenticationHeader,
         )
         .getListOfAllNodeMachines()
     }
 }
 
 internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppInteractorBase {
-    let payload: SeleniumGridNodeAppInteractorPayload
     let logger: Logger
     let client: any Client
-
-    internal init(
-        logger: Logger,
-        client: any Client,
-        payload: SeleniumGridNodeAppInteractorPayload
-    ) {
-        self.logger = logger
-        self.client = client
-        self.payload = payload
-    }
+    var payload: SeleniumGridNodeAppInteractorPayload
+    var flyAPIHTTPRequestAuthenticationHeader: [(String, String)]
 
     public func getListOfAllNodeMachines() async throws -> [NodeMachine] {
         return try await getAllNodeMachinesList()
-    }
-
-    private func getAllNodeMachinesList() async throws -> [NodeMachine] {
-        logGetListOfAllMachinesStarted()
-        let allMachines = try await validateAndGetAllMachines()
-        logGetListOfAllMachinesSuccess(totalMachines: allMachines.count)
-        return allMachines
-    }
-
-    private func validateAndGetAllMachines() async throws -> [NodeMachine] {
-        let response = try await getAllNodeMachinesResponse()
-        try validateAllNodeMachinesResponseStatus(response: response)
-
-        return try getNodeMachineListFromAppNodeMachinesResponse(response)
-    }
-
-    private func logGetListOfAllMachinesSuccess(totalMachines: Int) {
-        logger.info(
-            "Got list of all machines.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "total_machines": .string(String(totalMachines))
-            ]
-        )
-    }
-
-    private func getNodeMachineListFromAppNodeMachinesResponse(_ response: ClientResponse) throws -> [NodeMachine] {
-        try response.content.decode([NodeMachine].self)
-    }
-
-    private func validateAllNodeMachinesResponseStatus(response: ClientResponse) throws {
-        if isInvalidAllNodeMachinesResponseStatus(status: response.status) {
-            try handleInvalidAllNodeMachinesResponse(res: response)
-        }
-    }
-
-    private func handleInvalidAllNodeMachinesResponse(res: ClientResponse) throws {
-        let responseContent = try res.content.decode([String: String].self)
-        logger.info(
-            "Failed to get a list of all machines in nodes app",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "response_content": .string("\(responseContent)"),
-            ]
-        )
-        throw Abort(.internalServerError)
-    }
-
-    private func isInvalidAllNodeMachinesResponseStatus(status: HTTPStatus) -> Bool {
-        return status != .ok
-    }
-
-    private func getAllNodeMachinesResponse() async throws -> ClientResponse {
-        return try await client.get(
-            .init(stringLiteral: payload.nodesAppMachineAPIURL),
-            headers: .init(payload.flyAPIHTTPRequestAuthenticationHeader.getHeaderList())
-        )
-    }
-
-    private func logGetListOfAllMachinesStarted() {
-        logger.info(
-            "Getting a list of all machines.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-            ]
-        )
     }
 
     internal struct NodeMachine: Content {
@@ -149,4 +59,87 @@ internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppIntera
             case createdAt = "created_at"
         }
     }
+
+    private func getAllNodeMachinesList() async throws -> [NodeMachine] {
+        logGetListOfAllMachinesStarted()
+        let allMachines = try await validateAndGetAllMachines()
+        logGetListOfAllMachinesSuccess(totalMachines: allMachines.count)
+        return allMachines
+    }
+
+    private func logGetListOfAllMachinesStarted() {
+        logger.info(
+            "Getting a list of all machines.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+    }
+
+    private func validateAndGetAllMachines() async throws -> [NodeMachine] {
+        let response = try await getAllNodeMachinesResponse()
+        try validateAllNodeMachinesResponseStatus(response: response)
+
+        return try getNodeMachineListFromAppNodeMachinesResponse(response)
+    }
+
+    private func getAllNodeMachinesResponse() async throws -> ClientResponse {
+        return try await client.get(
+            .init(stringLiteral: payload.nodesAppMachineAPIURL),
+            headers: .init(flyAPIHTTPRequestAuthenticationHeader)
+        )
+    }
+
+    private func validateAllNodeMachinesResponseStatus(response: ClientResponse) throws {
+        if isInvalidHTTPResponseStatus(status: response.status) {
+            try handleInvalidAllNodeMachinesResponse(res: response)
+        }
+    }
+
+    internal func isInvalidHTTPResponseStatus(status: HTTPStatus) -> Bool {
+        return status != .ok
+    }
+
+    private func handleInvalidAllNodeMachinesResponse(res: ClientResponse) throws {
+        let responseContent = try decodeErrorFromResponse(res)
+        // TODO: finish refactoring
+        logger.error(
+            "Failed to get a list of all machines in nodes app",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "response_content": .string("\(responseContent)"),
+            ]
+        )
+        throw Abort(.internalServerError)
+    }
+
+    private func getNodeMachineListFromAppNodeMachinesResponse(_ response: ClientResponse) throws -> [NodeMachine] {
+        try response.content.decode([NodeMachine].self)
+    }
+
+    private func logGetListOfAllMachinesSuccess(totalMachines: Int) {
+        logger.info(
+            "Got list of all machines.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "total_machines": .string(String(totalMachines))
+            ]
+        )
+    }
+}
+
+internal protocol SeleniumGridNodeAppInteractorBase {
+    var payload: SeleniumGridNodeAppInteractorPayload { get }
+    var flyAPIHTTPRequestAuthenticationHeader: [(String, String)] { get }
+}
+
+extension SeleniumGridNodeAppInteractorBase {
+    func decodeErrorFromResponse(_ response: ClientResponse) throws -> [String: String] {
+        return try response.content.decode([String: String].self)
+    }
+}
+
+internal struct SeleniumGridNodeAppInteractorPayload: Content {
+    let nodesAppMachineAPIURL: String
+    let flyAPIToken: String
 }

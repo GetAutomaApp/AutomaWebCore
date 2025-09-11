@@ -15,8 +15,9 @@ struct SeleniumGridNodeAutoScalerCommand: AsyncCommand {
     func run(using context: CommandContext, signature _: Signature) async throws {
         let autoscaler = try SeleniumGridNodeAutoscaler(
             client: context.application.client,
-            logger: context.application.logger
+            logger: context.application.logger,
+            cyclePauseDurationSeconds: 10
         )
-        try await autoscaler.autoscale(cyclePauseDuration: 10)
+        try await autoscaler.autoscale()
     }
 }

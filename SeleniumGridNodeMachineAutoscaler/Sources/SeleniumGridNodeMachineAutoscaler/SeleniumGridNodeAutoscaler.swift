@@ -107,11 +107,12 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
         )
 
         let res = try await client.post(.init(stringLiteral: payload.nodesAppMachineAPIURL)) { req in
-            req.headers = .init(payload.flyAPIHTTPRequestAuthenticationHeader.getHeaderList())
+            req.headers = .init(flyAPIHTTPRequestAuthenticationHeader)
             try req.content.encode(machineConfiguration)
         }
 
         if res.status != .ok {
+            hv
             let responseContent = try res.content.decode([String: String].self)
             logger.info(
                 "Node machine creation failed.",
@@ -168,12 +169,12 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
 
         let res = try await client
             .post(.init(stringLiteral: "\(payload.nodesAppMachineAPIURL)/\(machineIdentifier)")) { req in
-                req.headers = .init(payload.flyAPIHTTPRequestAuthenticationHeader.getHeaderList())
+                req.headers = .init(flyAPIHTTPRequestAuthenticationHeader)
                 try req.content.encode(["config": updatedConfiguration.config])
             }
 
         if res.status != .ok {
-            let responseContent = try res.content.decode([String: String].self)
+            let responseContent = try decodeErrorFromResponse(res)
             logger.info(
                 "Failed to updated machine node 'SE_NODE_HOST' environment variable to URL of the machine",
                 metadata: [
