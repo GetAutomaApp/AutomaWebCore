@@ -16,8 +16,7 @@ struct SeleniumGridNodeAutoScalerCommand: AsyncCommand {
         let autoscaler = try SeleniumGridNodeAutoscaler(
             client: context.application.client,
             logger: context.application.logger,
-            cyclePauseDurationSeconds: 10
         )
-        try await autoscaler.autoscale()
+        try await autoscaler.autoscale(cyclePauseDuration: 10)
     }
 }

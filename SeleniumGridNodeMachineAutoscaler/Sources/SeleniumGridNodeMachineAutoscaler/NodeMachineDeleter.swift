@@ -46,10 +46,10 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
     private func handleInvalidDeleteNodeMachineResponse(response: ClientResponse) throws {
         let error = try decodeErrorFromResponse(response)
         logDeleteNodeMachineFailed(error: error)
-        throw Abort(.internalServerError)
+        try throwInvalidDeleteNodeMachineResponseError(error: error)
     }
 
-    private func logDeleteNodeMachineFailed(error: [String: String]) {
+    private func logDeleteNodeMachineFailed(error: FlyAPIError) {
         logger.error(
             "Failed to delete machine.",
             metadata: [
@@ -58,6 +58,10 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
                 "node_machine_id_to_delete": .string(machineID)
             ]
         )
+    }
+
+    private func throwInvalidDeleteNodeMachineResponseError(error: FlyAPIError) throws {
+        throw SeleniumGridNodeMachineAutoscalerError.flyMachinesAPIError(error: error)
     }
 
     private func getDeleteNodeMachineResponse() async throws -> ClientResponse {

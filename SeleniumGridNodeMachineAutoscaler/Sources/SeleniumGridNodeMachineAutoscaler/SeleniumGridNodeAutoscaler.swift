@@ -112,8 +112,7 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
         }
 
         if res.status != .ok {
-            hv
-            let responseContent = try res.content.decode([String: String].self)
+            let responseContent = try res.content.decode(FlyAPIError.self)
             logger.info(
                 "Node machine creation failed.",
                 metadata: [
