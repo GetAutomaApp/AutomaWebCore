@@ -5,6 +5,9 @@
 
 import Vapor
 
+// TODO: Use logger.error instead of logger.info in places where errors occur. Create custom errors instead of using internalServerError everywhere.
+// add more and better logs
+
 internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppInteractorBase {
     let logger: Logger
     let client: any Client

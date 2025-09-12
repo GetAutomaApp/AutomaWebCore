@@ -1,10 +1,16 @@
-// SeleniumGridNodeAutoscaler.swift
+// SeleniumGridNodeAutoCreator.swift
 // Copyright (c) 2025 GetAutomaApp
 // All source code and related assets are the property of GetAutomaApp.
 // All rights reserved.
 
 import AutomaUtilities
 import Vapor
+
+// TODO: Use logger.error instead of logger.info in places where errors occur. Create custom errors instead of using internalServerError everywhere.
+// add more and better logs
+// refactor remaining methods
+// order functions in logical order, like a well-ordered document
+// refactor helper methods to a single helper method in its own struct to reduce class length
 
 internal class SeleniumGridNodeAutoCreator: SeleniumGridNodeMachineAutoscaler {
     let seleniumGridHubBase: String
@@ -18,55 +24,96 @@ internal class SeleniumGridNodeAutoCreator: SeleniumGridNodeMachineAutoscaler {
         try super.init(logger: logger, client: client, cyclePauseDurationSeconds: cyclePauseDurationSeconds)
     }
 
-    public func autoCreate() async throws {
-        try await autoscaleNodes(cyclePauseDuration: cyclePauseDurationSeconds)
+    public func autoCreateNodeMachines() async throws {
+        try await autoCreateNodeMachinesImpl()
     }
 
-    private func autoscaleNodes(cyclePauseDuration: Int, cycleCount: Int = 1) async throws {
+    private func autoCreateNodeMachinesImpl() async throws {
+        try await autoCreateNodeMachinesBasedOnSessionsInQueue()
+        try await recursivelyAutoCreateNodeMachines()
+    }
+
+    private func autoCreateNodeMachinesBasedOnSessionsInQueue() async throws {
+        logAutoCreateNodeMachinesStarted()
+        try await handleMaxNodeMachinesReached()
+
+        let totalSessionQueueRequests = try await getTotalSessionQueueRequests()
+        try await createSeleniumGridNodeFlyMachines(totalSessionsInQueue: totalSessionQueueRequests)
+    }
+
+    private func createSeleniumGridNodeFlyMachines(totalSessionsInQueue: Int) async throws {
+        if totalSessionsInQueue > 0 {
+            logFoundPendingSessionsInQueue(totalSessions: totalSessionsInQueue)
+            try await createNewSeleniumGridNodeFlyMachines(amount: totalSessionsInQueue)
+        }
+    }
+
+    private func createNewSeleniumGridNodeFlyMachines(amount: Int) async throws {
+        for _ in 1 ... amount {
+            try await createNewSeleniumGridNodeFlyMachine()
+        }
+    }
+
+    private func logFoundPendingSessionsInQueue(totalSessions: Int) {
         logger.info(
-            "Node autoscaler cycle started (cycle: \(cycleCount)).",
+            "Found a total of \(totalSessions) pending sessions in queue.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+    }
+
+    private func getTotalSessionQueueRequests() async throws -> Int {
+        let response = try await getGridSessionQueueReponse()
+        return response.data.sessionsInfo.sessionQueueRequests.count
+    }
+
+    private func handleMaxNodeMachinesReached() async throws {
+        if try await maxNodeMachinesReached() {
+            try await recursivelyAutoCreateNodeMachines()
+        }
+    }
+
+    private func recursivelyAutoCreateNodeMachines() async throws {
+        try await sleepBetweenCycle()
+        cycleCount += 1
+        try await autoCreateNodeMachinesImpl()
+    }
+
+    private func logAutoCreateNodeMachinesStarted() {
+        logger.info(
+            "Node auto-creator cycle started (cycle: \(cycleCount)).",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)")
             ]
         )
-
-        if try await maxNodeMachinesReached() {
-            return
-        }
-
-        let response = try await getGridSessionQueueReponse()
-        let totalSessionsInQueue = response.data.sessionsInfo.sessionQueueRequests.count
-        if totalSessionsInQueue > 0 {
-            logger.info(
-                "Found a total of \(totalSessionsInQueue) pending sessions in queue.",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                ]
-            )
-            // create a selenium node fly machine for every session
-            for _ in 1 ... totalSessionsInQueue {
-                try await createNewSeleniumGridNodeFlyMachine()
-            }
-        }
-        try await Task.sleep(for: .seconds(cyclePauseDuration))
-        try await autoscaleNodes(cyclePauseDuration: cyclePauseDuration, cycleCount: cycleCount + 1)
     }
 
     private func maxNodeMachinesReached() async throws -> Bool {
-        let totalNodeMachines = try await getListOfAllNodeMachines().count
-
-        if totalNodeMachines < maxNodeMachinesAllowed {
-            return false
+        let totalMachines = try await getTotalNodeMachines()
+        let reached = reachedMaxNodeMachines(totalMachines: totalMachines)
+        if reached {
+            logReachedMaxNodeMachines(totalMachines: totalMachines)
         }
+        return reached
+    }
 
+    private func logReachedMaxNodeMachines(totalMachines: Int) {
         logger.info(
             "The threshold of \(maxNodeMachinesAllowed) running node machines reached. No additional node machines will be created.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "total_node_machines": .string(String(totalNodeMachines))
+                "total_node_machines": .string(String(totalMachines))
             ]
         )
-        return true
+    }
+
+    private func reachedMaxNodeMachines(totalMachines: Int) -> Bool {
+        return totalMachines >= maxNodeMachinesAllowed
+    }
+
+    private func getTotalNodeMachines() async throws -> Int {
+        try await getListOfAllNodeMachines().count
     }
 
     private func getGridSessionQueueReponse() async throws -> SessionQueueResponse {
