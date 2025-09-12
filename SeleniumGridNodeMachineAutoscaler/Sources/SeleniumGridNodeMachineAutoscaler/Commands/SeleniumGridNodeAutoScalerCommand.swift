@@ -5,18 +5,19 @@
 
 import Vapor
 
-struct SeleniumGridNodeAutoScalerCommand: AsyncCommand {
+struct SeleniumGridNodeAutoCreatorCommand: AsyncCommand {
     struct Signature: CommandSignature {}
 
     var help: String {
-        "Autoscales fly.io SeleniumGrid Node App machines"
+        "Auto-creates fly.io SeleniumGrid Node App machines"
     }
 
     func run(using context: CommandContext, signature _: Signature) async throws {
-        let autoscaler = try SeleniumGridNodeAutoscaler(
+        let autoCreator = try SeleniumGridNodeAutoCreator(
             client: context.application.client,
             logger: context.application.logger,
+            cyclePauseDurationSeconds: 10
         )
-        try await autoscaler.autoscale(cyclePauseDuration: 10)
+        try await autoCreator.autoCreate()
     }
 }

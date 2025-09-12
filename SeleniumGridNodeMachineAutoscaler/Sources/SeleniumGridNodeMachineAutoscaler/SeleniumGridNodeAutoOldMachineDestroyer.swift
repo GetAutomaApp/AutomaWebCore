@@ -5,7 +5,7 @@
 
 import Vapor
 
-internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeAutoDestroyerBase {
+internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineAutoscaler {
     public func autoDestroyAllOldNodeMachines() async throws {
         try await autoDestroyAllOldNodeMachinesImpl()
     }

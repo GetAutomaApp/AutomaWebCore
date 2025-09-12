@@ -3,7 +3,7 @@
 // All source code and related assets are the property of GetAutomaApp.
 // All rights reserved.
 
-internal class SeleniumGridNodeAutoOffMachineDestroyer: SeleniumGridNodeAutoDestroyerBase {
+internal class SeleniumGridNodeAutoOffMachineDestroyer: SeleniumGridNodeMachineAutoscaler {
     public func autoDestroyAllOffNodeMachines() async throws {
         try await autoDestroyAllOffNodeMachinesImpl()
     }

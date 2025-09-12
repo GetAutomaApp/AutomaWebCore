@@ -5,7 +5,7 @@
 
 import Vapor
 
-internal class SeleniumGridNodeAutoDestroyerBase: SeleniumGridNodeAppInteractor {
+internal class SeleniumGridNodeMachineAutoscalerBase: SeleniumGridNodeAppInteractor {
     let cyclePauseDurationSeconds: Int
     internal var cycleCount: Int = 1
 
@@ -13,7 +13,9 @@ internal class SeleniumGridNodeAutoDestroyerBase: SeleniumGridNodeAppInteractor 
         self.cyclePauseDurationSeconds = cyclePauseDurationSeconds
         try super.init(logger: logger, client: client)
     }
+}
 
+internal class SeleniumGridNodeMachineAutoscaler: SeleniumGridNodeMachineAutoscalerBase {
     internal func sleepBetweenCycle() async throws {
         logSleepBetweenCycleStarted()
         try await Task.sleep(for: .seconds(cyclePauseDurationSeconds))
@@ -33,7 +35,7 @@ internal class SeleniumGridNodeAutoDestroyerBase: SeleniumGridNodeAppInteractor 
     }
 }
 
-internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeAutoDestroyerBase {
+internal class SeleniumGridNodeAutoDestroyer: SeleniumGridNodeMachineAutoscalerBase {
     public func autoDestroyAllOldNodeMachines() async throws {
         try await SeleniumGridNodeAutoOldMachineDestroyer(
             logger: logger,

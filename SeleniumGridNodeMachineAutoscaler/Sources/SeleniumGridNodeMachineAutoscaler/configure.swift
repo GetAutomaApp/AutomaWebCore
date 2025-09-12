@@ -10,6 +10,6 @@ public func configure(_ app: Application) async throws {
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
-    app.asyncCommands.use(SeleniumGridNodeAutoScalerCommand(), as: "autoscaler")
+    app.asyncCommands.use(SeleniumGridNodeAutoCreatorCommand(), as: "autocreator")
     app.asyncCommands.use(SeleniumGridNodeAutoDestroyerCommand(), as: "autodestroyer")
 }

@@ -6,20 +6,20 @@
 import AutomaUtilities
 import Vapor
 
-internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
+internal class SeleniumGridNodeAutoCreator: SeleniumGridNodeMachineAutoscaler {
     let seleniumGridHubBase: String
     let seleniumGridNodeBase: String
 
     let maxNodeMachinesAllowed: Int = 10
 
-    init(client: any Client, logger: Logger) throws {
+    init(client: any Client, logger: Logger, cyclePauseDurationSeconds: Int) throws {
         seleniumGridHubBase = try Environment.getOrThrow("SELENIUM_GRID_HUB_BASE")
         seleniumGridNodeBase = try Environment.getOrThrow("SELENIUM_GRID_NODE_BASE")
-        try super.init(logger: logger, client: client)
+        try super.init(logger: logger, client: client, cyclePauseDurationSeconds: cyclePauseDurationSeconds)
     }
 
-    public func autoscale(cyclePauseDuration: Int) async throws {
-        try await autoscaleNodes(cyclePauseDuration: cyclePauseDuration)
+    public func autoCreate() async throws {
+        try await autoscaleNodes(cyclePauseDuration: cyclePauseDurationSeconds)
     }
 
     private func autoscaleNodes(cyclePauseDuration: Int, cycleCount: Int = 1) async throws {
