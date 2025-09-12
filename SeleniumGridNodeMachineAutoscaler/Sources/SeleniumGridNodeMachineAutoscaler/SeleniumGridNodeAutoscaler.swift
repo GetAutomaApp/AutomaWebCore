@@ -174,12 +174,12 @@ internal class SeleniumGridNodeAutoscaler: SeleniumGridNodeAppInteractor {
             }
 
         if res.status != .ok {
-            let responseContent = try decodeErrorFromResponse(res)
+            let error = try decodeErrorFromResponse(res)
             logger.info(
                 "Failed to updated machine node 'SE_NODE_HOST' environment variable to URL of the machine",
                 metadata: [
                     "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    "response_content": .string("\(responseContent)"),
+                    "error": .string("\(error)"),
                     "machine_identifier": .string(machineIdentifier)
                 ]
             )

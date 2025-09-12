@@ -78,9 +78,9 @@ internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppIntera
 
     private func validateAndGetAllMachines() async throws -> [NodeMachine] {
         let response = try await getAllNodeMachinesResponse()
-        try validateAllNodeMachinesResponseStatus(response: response)
+        try validateFindAllNodeMachinesResponseStatus(response: response)
 
-        return try getNodeMachineListFromAppNodeMachinesResponse(response)
+        return try findNodeMachineListFromResponse(response)
     }
 
     private func getAllNodeMachinesResponse() async throws -> ClientResponse {
@@ -90,30 +90,30 @@ internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppIntera
         )
     }
 
-    private func validateAllNodeMachinesResponseStatus(response: ClientResponse) throws {
+    private func validateFindAllNodeMachinesResponseStatus(response: ClientResponse) throws {
         if isInvalidHTTPResponseStatus(status: response.status) {
-            try handleInvalidAllNodeMachinesResponse(res: response)
+            try handleInvalidFindAllNodeMachinesResponse(res: response)
         }
     }
 
-    internal func isInvalidHTTPResponseStatus(status: HTTPStatus) -> Bool {
-        return status != .ok
+    private func handleInvalidFindAllNodeMachinesResponse(res: ClientResponse) throws {
+        let error = try decodeErrorFromResponse(res)
+        try logInvalidFindAllNodeMachinesResponse(error: error)
     }
 
-    private func handleInvalidAllNodeMachinesResponse(res: ClientResponse) throws {
-        let responseContent = try decodeErrorFromResponse(res)
-        // TODO: finish refactoring
+    private func logInvalidFindAllNodeMachinesResponse(error: [String: String]) throws {
         logger.error(
             "Failed to get a list of all machines in nodes app",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "response_content": .string("\(responseContent)"),
+                "error": .string("\(error)"),
             ]
         )
+
         throw Abort(.internalServerError)
     }
 
-    private func getNodeMachineListFromAppNodeMachinesResponse(_ response: ClientResponse) throws -> [NodeMachine] {
+    private func findNodeMachineListFromResponse(_ response: ClientResponse) throws -> [NodeMachine] {
         try response.content.decode([NodeMachine].self)
     }
 
@@ -136,6 +136,10 @@ internal protocol SeleniumGridNodeAppInteractorBase {
 extension SeleniumGridNodeAppInteractorBase {
     func decodeErrorFromResponse(_ response: ClientResponse) throws -> [String: String] {
         return try response.content.decode([String: String].self)
+    }
+
+    func isInvalidHTTPResponseStatus(status: HTTPStatus) -> Bool {
+        return status != .ok
     }
 }
 
