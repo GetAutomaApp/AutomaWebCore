@@ -7,7 +7,8 @@ import AutomaUtilities
 import Vapor
 
 // TODO:
-// add more and better logs
+// - [ ] add more logs
+// - [ ] better error handling
 
 internal protocol SeleniumGridInteractor {
     var client: any Client { get }

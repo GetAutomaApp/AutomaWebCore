@@ -68,7 +68,7 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
         )
 
         for machine in machinesToStop {
-            try await deleteNodeMachine(id: machine.id)
+            try await destroyNodeMachine(id: machine.id)
         }
     }
 }

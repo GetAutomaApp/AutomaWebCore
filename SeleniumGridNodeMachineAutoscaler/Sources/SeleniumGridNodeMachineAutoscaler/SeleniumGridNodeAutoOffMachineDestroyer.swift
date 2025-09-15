@@ -29,39 +29,49 @@ internal class SeleniumGridNodeAutoOffMachineDestroyer: SeleniumGridNodeMachineA
         )
     }
 
-    private func destroyAllOffNodeMachines(_ allMachines: [SeleniumGridNodeAppNodeMachinesFinder
-            .NodeMachine]) async throws
-    {
-        // TODO: refactor
-        if allMachines.count == 0 {
+    private func destroyAllOffNodeMachines(_ allMachines: NodeMachines) async throws {
+        if allMachines.isEmpty {
             return
         }
 
-        let machinesToStop = allMachines.filter { machine in
-            ["stopped", "suspended"].contains(machine.state)
-        }
+        let machinesToStop = getAllOffNodeMachines(allMachines)
+        let totalMachines = allMachines.count
 
-        if machinesToStop.count == 0 {
-            logger.info(
-                "None of the \(allMachines.count) machines in a stopped or suspended state. No machines will be destroyed.",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                ]
-            )
+        if machinesToStop.isEmpty {
+            logNoOffMachines(totalMachines: totalMachines)
             return
         }
 
-        logger.info(
-            "Destroying all off node machines started.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "total_machines_to_destroy": .string(String(machinesToStop.count))
-            ]
-        )
+        logDestroyAllOffMachinesStarted(totalMachines: totalMachines)
 
         for machine in machinesToStop {
             try await deleteNodeMachine(id: machine.id)
         }
+    }
+
+    private func getAllOffNodeMachines(_ machines: NodeMachines) -> NodeMachines {
+        machines.filter { machine in
+            ["stopped", "suspended"].contains(machine.state)
+        }
+    }
+
+    private func logNoOffMachines(totalMachines: Int) {
+        logger.info(
+            "None of the \(totalMachines) machines in a stopped or suspended state. No machines will be destroyed.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+    }
+
+    private func logDestroyAllOffMachinesStarted(totalMachines: Int) {
+        logger.info(
+            "Destroying all off node machines started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "total_machines_to_destroy": .string(String(totalMachines))
+            ]
+        )
     }
 
     private func recursivelyAutoDestroyAllOffNodeMachines() async throws {

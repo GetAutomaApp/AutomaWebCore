@@ -5,32 +5,17 @@
 
 import Vapor
 
-// TODO: Use logger.error instead of logger.info in places where errors occur. Create custom errors instead of using internalServerError everywhere.
-// add more and better logs
-
 internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppInteractorBase {
     let logger: Logger
     let client: any Client
     var payload: SeleniumGridNodeAppInteractorPayload
     var flyAPIHTTPRequestAuthenticationHeader: [(String, String)]
 
-    public func getListOfAllNodeMachines() async throws -> [NodeMachine] {
+    public func getListOfAllNodeMachines() async throws -> NodeMachines {
         return try await getAllNodeMachinesList()
     }
 
-    internal struct NodeMachine: Content {
-        let id: String
-        let state: String
-        let createdAt: Date
-
-        public enum CodingKeys: String, CodingKey {
-            case id
-            case state
-            case createdAt = "created_at"
-        }
-    }
-
-    private func getAllNodeMachinesList() async throws -> [NodeMachine] {
+    private func getAllNodeMachinesList() async throws -> NodeMachines {
         logGetListOfAllMachinesStarted()
         let allMachines = try await validateAndGetAllMachines()
         logGetListOfAllMachinesSuccess(totalMachines: allMachines.count)
@@ -46,7 +31,7 @@ internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppIntera
         )
     }
 
-    private func validateAndGetAllMachines() async throws -> [NodeMachine] {
+    private func validateAndGetAllMachines() async throws -> NodeMachines {
         let response = try await getAllNodeMachinesResponse()
         try validateFindAllNodeMachinesResponseStatus(response: response)
 
@@ -74,8 +59,8 @@ internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppIntera
         ))
     }
 
-    private func findNodeMachineListFromResponse(_ response: ClientResponse) throws -> [NodeMachine] {
-        try response.content.decode([NodeMachine].self)
+    private func findNodeMachineListFromResponse(_ response: ClientResponse) throws -> NodeMachines {
+        try response.content.decode(NodeMachines.self)
     }
 
     private func logGetListOfAllMachinesSuccess(totalMachines: Int) {

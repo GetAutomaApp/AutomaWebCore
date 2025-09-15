@@ -61,7 +61,7 @@ internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase 
         )
     }
 
-    internal func getListOfAllNodeMachines() async throws -> [SeleniumGridNodeAppNodeMachinesFinder.NodeMachine] {
+    internal func getListOfAllNodeMachines() async throws -> NodeMachines {
         try await SeleniumGridNodeAppNodeMachinesFinder(
             logger: logger,
             client: client,
@@ -75,3 +75,17 @@ internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase 
         try await CycleSleeper(config, logger: logger).sleep()
     }
 }
+
+internal struct NodeMachine: Content {
+    let id: String
+    let state: String
+    let createdAt: Date
+
+    public enum CodingKeys: String, CodingKey {
+        case id
+        case state
+        case createdAt = "created_at"
+    }
+}
+
+typealias NodeMachines = [NodeMachine]
