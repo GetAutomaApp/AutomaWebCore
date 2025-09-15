@@ -19,46 +19,19 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
         logDeleteNodeMachineSuccess()
     }
 
-    private func getAndValidateDeleteNodeMachineResponse() async throws {
-        let response = try await getDeleteNodeMachineResponse()
-        try validateDeleteNodeMachineResponseStatus(response: response)
-    }
-
-    private func validateDeleteNodeMachineResponseStatus(response: ClientResponse) throws {
-        if isInvalidHTTPResponseStatus(status: response.status) {
-            try handleInvalidDeleteNodeMachineResponse(response: response)
-        }
-    }
-
-    private func logDeleteNodeMachineSuccess() {
+    private func logDeleteNodeMachineStarted() {
         logger.info(
-            "Successfully deleted node machine.",
+            "Deleting node machine started.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "deletd_node_machine_id": .string(machineID)
-            ]
-        )
-    }
-
-    private func handleInvalidDeleteNodeMachineResponse(response: ClientResponse) throws {
-        let error = try decodeErrorFromResponse(response)
-        logDeleteNodeMachineFailed(error: error)
-        try throwInvalidDeleteNodeMachineResponseError(error: error)
-    }
-
-    private func logDeleteNodeMachineFailed(error: FlyAPIError) {
-        logger.error(
-            "Failed to delete machine.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "error": .string("\(error)"),
                 "node_machine_id_to_delete": .string(machineID)
             ]
         )
     }
 
-    private func throwInvalidDeleteNodeMachineResponseError(error: FlyAPIError) throws {
-        throw SeleniumGridNodeMachineAutoscalerError.flyMachinesAPIError(error: error)
+    private func getAndValidateDeleteNodeMachineResponse() async throws {
+        let response = try await getDeleteNodeMachineResponse()
+        try validateDeleteNodeMachineResponseStatus(response: response)
     }
 
     private func getDeleteNodeMachineResponse() async throws -> ClientResponse {
@@ -68,12 +41,23 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
         )
     }
 
-    private func logDeleteNodeMachineStarted() {
+    private func validateDeleteNodeMachineResponseStatus(response: ClientResponse) throws {
+        if isInvalidHTTPResponseStatus(status: response.status) {
+            try handleInvalidDeleteNodeMachineResponse(response: response)
+        }
+    }
+
+    private func handleInvalidDeleteNodeMachineResponse(response: ClientResponse) throws {
+        let error = try decodeErrorFromResponse(response)
+        try handleFlyMachinesAPIError(payload: .init(message: "Failed to delete machine", error: error))
+    }
+
+    private func logDeleteNodeMachineSuccess() {
         logger.info(
-            "Deleting node machine started.",
+            "Successfully deleted node machine.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "node_machine_id_to_delete": .string(machineID)
+                "deletd_node_machine_id": .string(machineID)
             ]
         )
     }

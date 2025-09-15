@@ -17,7 +17,7 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
     }
 
     private func recursivelyAutoDestroyAllOldNodeMachines() async throws {
-        try await sleepBetweenCycle()
+        try await sleepBetweenCycle(config: .init(duration: cyclePauseDurationSeconds))
         cycleCount += 1
         try await autoDestroyAllOldNodeMachinesImpl()
     }

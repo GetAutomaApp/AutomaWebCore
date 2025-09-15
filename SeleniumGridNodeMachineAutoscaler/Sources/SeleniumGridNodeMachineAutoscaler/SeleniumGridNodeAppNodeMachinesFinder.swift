@@ -62,25 +62,16 @@ internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppIntera
 
     private func validateFindAllNodeMachinesResponseStatus(response: ClientResponse) throws {
         if isInvalidHTTPResponseStatus(status: response.status) {
-            try handleInvalidFindAllNodeMachinesResponse(res: response)
+            try handleInvalidFindAllNodeMachinesResponse(response: response)
         }
     }
 
-    private func handleInvalidFindAllNodeMachinesResponse(res: ClientResponse) throws {
-        let error = try decodeErrorFromResponse(res)
-        try logInvalidFindAllNodeMachinesResponse(error: error)
-    }
-
-    private func logInvalidFindAllNodeMachinesResponse(error: FlyAPIError) throws {
-        logger.error(
-            "Failed to get a list of all machines in nodes app",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "error": .string("\(error)"),
-            ]
-        )
-
-        throw Abort(.internalServerError)
+    private func handleInvalidFindAllNodeMachinesResponse(response: ClientResponse) throws {
+        let error = try decodeErrorFromResponse(response)
+        try handleFlyMachinesAPIError(payload: .init(
+            message: "Failed to get a list of all machines in nodes app",
+            error: error
+        ))
     }
 
     private func findNodeMachineListFromResponse(_ response: ClientResponse) throws -> [NodeMachine] {

@@ -14,12 +14,6 @@ internal class SeleniumGridNodeAutoOffMachineDestroyer: SeleniumGridNodeMachineA
         try await recursivelyAutoDestroyAllOffNodeMachines()
     }
 
-    private func recursivelyAutoDestroyAllOffNodeMachines() async throws {
-        try await sleepBetweenCycle()
-        cycleCount += 1
-        try await autoDestroyAllOffNodeMachines()
-    }
-
     private func destroyAllCurrentlyOffNodeMachines() async throws {
         logAutoDestroyAllOffNodeMachinesStarted()
         let allMachines = try await getListOfAllNodeMachines()
@@ -38,6 +32,7 @@ internal class SeleniumGridNodeAutoOffMachineDestroyer: SeleniumGridNodeMachineA
     private func destroyAllOffNodeMachines(_ allMachines: [SeleniumGridNodeAppNodeMachinesFinder
             .NodeMachine]) async throws
     {
+        // TODO: refactor
         if allMachines.count == 0 {
             return
         }
@@ -67,5 +62,11 @@ internal class SeleniumGridNodeAutoOffMachineDestroyer: SeleniumGridNodeMachineA
         for machine in machinesToStop {
             try await deleteNodeMachine(id: machine.id)
         }
+    }
+
+    private func recursivelyAutoDestroyAllOffNodeMachines() async throws {
+        try await sleepBetweenCycle(config: .init(duration: cyclePauseDurationSeconds))
+        cycleCount += 1
+        try await autoDestroyAllOffNodeMachines()
     }
 }

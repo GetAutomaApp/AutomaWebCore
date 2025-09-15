@@ -48,9 +48,3 @@ internal struct FlyMachinesAPIErrorHandler {
         throw SeleniumGridNodeMachineAutoscalerError.flyMachinesAPIError(error: payload.error)
     }
 }
-
-internal struct FlyMachinesAPIErrorHandlerPayload {
-    let message: String
-    let metadata: Logger.Metadata = [:]
-    let error: SeleniumGridNodeAppInteractorBase.FlyAPIError
-}

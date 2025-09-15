@@ -6,6 +6,40 @@
 import AutomaUtilities
 import Vapor
 
+internal protocol SeleniumGridNodeAppInteractorBase {
+    var client: any Client { get }
+    var logger: Logger { get }
+    var payload: SeleniumGridNodeAppInteractorPayload { get }
+    var flyAPIHTTPRequestAuthenticationHeader: [(String, String)] { get }
+}
+
+internal struct SeleniumGridNodeAppInteractorPayload: Content {
+    let nodesAppMachineAPIURL: String
+    let flyAPIToken: String
+}
+
+internal extension SeleniumGridNodeAppInteractorBase {
+    typealias FlyAPIError = [String: String]
+
+    func decodeErrorFromResponse(_ response: ClientResponse) throws -> FlyAPIError {
+        return try response.content.decode(FlyAPIError.self)
+    }
+
+    func isInvalidHTTPResponseStatus(status: HTTPStatus) -> Bool {
+        return status != .ok
+    }
+
+    func handleFlyMachinesAPIError(payload: FlyMachinesAPIErrorHandlerPayload) throws {
+        try FlyMachinesAPIErrorHandler(payload: payload, logger: logger).handle()
+    }
+}
+
+internal struct FlyMachinesAPIErrorHandlerPayload {
+    let message: String
+    let metadata: Logger.Metadata = [:]
+    let error: SeleniumGridNodeAppInteractorBase.FlyAPIError
+}
+
 internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase {
     let payload: SeleniumGridNodeAppInteractorPayload
     let flyAPIHTTPRequestAuthenticationHeader: [(String, String)]
@@ -37,30 +71,7 @@ internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase 
         .getListOfAllNodeMachines()
     }
 
-    internal func handleFlyMachinesAPIError(payload: FlyMachinesAPIErrorHandlerPayload) throws {
-        try FlyMachinesAPIErrorHandler(payload: payload, logger: logger).handle()
-    }
-}
-
-internal protocol SeleniumGridNodeAppInteractorBase {
-    var client: any Client { get }
-    var logger: Logger { get }
-    var payload: SeleniumGridNodeAppInteractorPayload { get }
-    var flyAPIHTTPRequestAuthenticationHeader: [(String, String)] { get }
-}
-
-internal struct SeleniumGridNodeAppInteractorPayload: Content {
-    let nodesAppMachineAPIURL: String
-    let flyAPIToken: String
-}
-
-internal extension SeleniumGridNodeAppInteractorBase {
-    typealias FlyAPIError = [String: String]
-    func decodeErrorFromResponse(_ response: ClientResponse) throws -> FlyAPIError {
-        return try response.content.decode(FlyAPIError.self)
-    }
-
-    func isInvalidHTTPResponseStatus(status: HTTPStatus) -> Bool {
-        return status != .ok
+    internal func sleepBetweenCycle(config: CycleSleeper.CycleSleeperConfig) async throws {
+        try await CycleSleeper(config, logger: logger).sleep()
     }
 }
