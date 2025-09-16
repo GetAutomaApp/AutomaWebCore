@@ -14,8 +14,8 @@ internal protocol SeleniumGridNodeAppInteractorBase {
 }
 
 internal struct SeleniumGridNodeAppInteractorPayload: Content {
-    let nodesAppMachineAPIURL: String
-    let flyAPIToken: String
+    internal let nodesAppMachineAPIURL: String
+    internal let flyAPIToken: String
 }
 
 internal extension SeleniumGridNodeAppInteractorBase {
@@ -35,18 +35,18 @@ internal extension SeleniumGridNodeAppInteractorBase {
 }
 
 internal struct FlyMachinesAPIErrorHandlerPayload {
-    let message: String
-    let metadata: Logger.Metadata = [:]
-    let error: SeleniumGridNodeAppInteractorBase.FlyAPIError
+    internal let message: String
+    internal let metadata: Logger.Metadata = [:]
+    internal let error: SeleniumGridNodeAppInteractorBase.FlyAPIError
 }
 
 internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase {
-    let payload: SeleniumGridNodeAppInteractorPayload
-    let flyAPIHTTPRequestAuthenticationHeader: [(String, String)]
-    let logger: Logger
-    let client: any Client
+    internal let payload: SeleniumGridNodeAppInteractorPayload
+    internal let flyAPIHTTPRequestAuthenticationHeader: [(String, String)]
+    internal let logger: Logger
+    internal let client: any Client
 
-    init(logger: Logger, client: any Client) throws {
+    internal init(logger: Logger, client: any Client) throws {
         self.logger = logger
         self.client = client
 
@@ -74,13 +74,16 @@ internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase 
     internal func sleepBetweenCycle(config: CycleSleeper.CycleSleeperConfig) async throws {
         try await CycleSleeper(config, logger: logger).sleep()
     }
+
+    deinit {}
 }
 
 internal struct NodeMachine: Content {
-    let id: String
-    let state: String
-    let createdAt: Date
+    internal let id: String
+    internal let state: String
+    internal let createdAt: Date
 
+    /// Coding keys for `NodeMachine`
     public enum CodingKeys: String, CodingKey {
         case id
         case state
@@ -88,4 +91,4 @@ internal struct NodeMachine: Content {
     }
 }
 
-typealias NodeMachines = [NodeMachine]
+internal typealias NodeMachines = [NodeMachine]

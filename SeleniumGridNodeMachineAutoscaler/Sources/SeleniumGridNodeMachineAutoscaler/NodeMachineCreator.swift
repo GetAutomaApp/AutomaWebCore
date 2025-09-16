@@ -7,23 +7,24 @@ import AutomaUtilities
 import Vapor
 
 internal class NodeMachineCreationBase: SeleniumGridNodeAppInteractor, SeleniumGridInteractor {
-    let machineConfiguration: MachinePropertyConfiguration
-    let seleniumGridNodeBase: String
-    let seleniumGridHubBase: String
+    internal let machineConfiguration: MachinePropertyConfiguration
+    internal let seleniumGridNodeBase: String
+    internal let seleniumGridHubBase: String
 
     internal struct MachinePropertyConfiguration: Content {
-        let region: String
-        var config: MachineConfiguration
+        internal let region: String
+        internal var config: MachineConfiguration
     }
 
     internal struct MachineConfiguration: Content {
-        let image: String
-        var skipLaunch: Bool
-        var env: [String: String]
-        let autoDestroy: Bool
-        let restart: [String: String]
-        let guest: MachineGuessConfiguration
+        internal let image: String
+        internal var skipLaunch: Bool
+        internal var env: [String: String]
+        internal let autoDestroy: Bool
+        internal let restart: [String: String]
+        internal let guest: MachineGuessConfiguration
 
+        /// Coding keys for `NodeMachineCreationBase`
         public enum CodingKeys: String, CodingKey {
             case image
             case skipLaunch = "skip_launch"
@@ -35,10 +36,11 @@ internal class NodeMachineCreationBase: SeleniumGridNodeAppInteractor, SeleniumG
     }
 
     internal struct MachineGuessConfiguration: Content {
-        let cpuKind: String
-        let cpus: Int
-        let memoryMb: Int
+        internal let cpuKind: String
+        internal let cpus: Int
+        internal let memoryMb: Int
 
+        /// Coding keys for `MachineGuessConfiguration`
         public enum CodingKeys: String, CodingKey {
             case cpuKind = "cpu_kind"
             case cpus
@@ -46,9 +48,9 @@ internal class NodeMachineCreationBase: SeleniumGridNodeAppInteractor, SeleniumG
         }
     }
 
-    typealias MachineIdentifier = String
+    internal typealias MachineIdentifier = String
 
-    init(
+    internal init(
         logger: Logger,
         client: any Client,
         seleniumGridHubBase: String
@@ -74,9 +76,13 @@ internal class NodeMachineCreationBase: SeleniumGridNodeAppInteractor, SeleniumG
             )
         )
     }
+
+    deinit {}
 }
 
 internal class NodeMachineCreator: NodeMachineCreationBase {
+    /// Create new node machine for Selenium Grid Node app on fly.io
+    /// - Throws: An error if creating machine fails
     public func create() async throws {
         try await createImpl()
     }
@@ -148,4 +154,6 @@ internal class NodeMachineCreator: NodeMachineCreationBase {
 
         try await sleepBetweenCycle(config: .init(duration: 20))
     }
+
+    deinit {}
 }

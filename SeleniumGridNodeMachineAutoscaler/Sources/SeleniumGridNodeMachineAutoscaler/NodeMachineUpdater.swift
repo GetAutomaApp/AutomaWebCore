@@ -7,9 +7,9 @@ import AutomaUtilities
 import Vapor
 
 internal class NodeMachineUpdater: NodeMachineCreationBase {
-    let machineID: MachineIdentifier
+    internal let machineID: MachineIdentifier
 
-    init(
+    internal init(
         logger: Logger,
         client: any Client,
         seleniumGridHubBase: String,
@@ -19,6 +19,8 @@ internal class NodeMachineUpdater: NodeMachineCreationBase {
         try super.init(logger: logger, client: client, seleniumGridHubBase: seleniumGridHubBase)
     }
 
+    /// Update node machnine `SE_NODE_HOST` environment variable to node machine url
+    /// - Throws: An error if updating machine response failed
     public func updateNodeHostURLEnvironmentVariable() async throws {
         logUpdateMachineStarted()
         let updatedConfig = updateMachineConfiguation()
@@ -95,4 +97,6 @@ internal class NodeMachineUpdater: NodeMachineCreationBase {
                 errorMessage: "Failed to get update node machine response for machine with ID '\(machineID)'"
             )
     }
+
+    deinit {}
 }

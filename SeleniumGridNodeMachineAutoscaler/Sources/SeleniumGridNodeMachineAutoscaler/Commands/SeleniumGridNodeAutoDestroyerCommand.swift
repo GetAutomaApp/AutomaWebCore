@@ -5,22 +5,24 @@
 
 import Vapor
 
-enum SeleniumGridNodeAutoDestroyerType: String, Codable {
+internal enum SeleniumGridNodeAutoDestroyerType: String, Codable {
     case offMachines
     case oldMachines
 }
 
-struct SeleniumGridNodeAutoDestroyerCommand: AsyncCommand {
-    struct Signature: CommandSignature {
+internal struct SeleniumGridNodeAutoDestroyerCommand: AsyncCommand {
+    internal struct Signature: CommandSignature {
         @Argument(name: "type")
-        var type: SeleniumGridNodeAutoDestroyerType.RawValue
+        internal var type: SeleniumGridNodeAutoDestroyerType.RawValue
     }
 
-    var help: String {
+    internal var help: String {
         "Auto destroys fly.io SeleniumGrid Node App machines"
     }
 
-    func run(using context: CommandContext, signature: Signature) async throws {
+    /// Run auto-destroyer command
+    /// - Throws: An eror if there was a problem destroying machines
+    public func run(using context: CommandContext, signature: Signature) async throws {
         let destroyer = try SeleniumGridNodeAutoDestroyer(
             logger: context.application.logger,
             client: context.application.client,

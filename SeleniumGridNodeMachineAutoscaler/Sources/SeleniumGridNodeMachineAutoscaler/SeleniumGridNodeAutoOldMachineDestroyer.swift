@@ -6,6 +6,8 @@
 import Vapor
 
 internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineAutoscaler {
+    /// Auto-destroy all old node machines on fly.io
+    /// - Throws: An error if there was a problem auto-destroying all old node machines
     public func autoDestroyAllOldNodeMachines() async throws {
         try await autoDestroyAllOldNodeMachinesImpl()
     }
@@ -38,7 +40,7 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
     }
 
     private func destroyAllOldNodeMachines(_ allMachines: [NodeMachine]) async throws {
-        if allMachines.count == 0 {
+        if allMachines.isEmpty {
             return
         }
 
@@ -47,7 +49,7 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
             return Date() > identifyAsOldAt
         }
 
-        if machinesToStop.count == 0 {
+        if machinesToStop.isEmpty {
             logger.info(
                 "None of the \(allMachines.count) machines in a considered old. No machines will be destroyed.",
                 metadata: [
@@ -69,4 +71,6 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
             try await deleteNodeMachine(id: machine.id)
         }
     }
+
+    deinit {}
 }

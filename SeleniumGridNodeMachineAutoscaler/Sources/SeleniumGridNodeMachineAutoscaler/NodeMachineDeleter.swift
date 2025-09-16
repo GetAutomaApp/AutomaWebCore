@@ -6,13 +6,15 @@
 import Vapor
 
 internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
-    let machineID: String
+    internal let machineID: String
 
-    init(logger: Logger, client: any Client, machineID: String) throws {
+    internal init(logger: Logger, client: any Client, machineID: String) throws {
         self.machineID = machineID
         try super.init(logger: logger, client: client)
     }
 
+    /// Delete node machine using fly.io machines API
+    /// - Throws: An error if deletion of machine failed
     public func delete() async throws {
         logDeleteNodeMachineStarted()
         try await getAndValidateDeleteNodeMachineResponse()
@@ -61,4 +63,6 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
             ]
         )
     }
+
+    deinit {}
 }

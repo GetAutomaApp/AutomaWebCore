@@ -6,12 +6,15 @@
 import Vapor
 
 internal class MaxNodeMachinesReachedHandler: SeleniumGridNodeMachineAutoscaler {
-    let maxNodeMachinesAllowed: Int = 10
+    internal let maxNodeMachinesAllowed: Int = 10
 
-    init(logger: Logger, client: any Client) throws {
+    internal init(logger: Logger, client: any Client) throws {
         try super.init(logger: logger, client: client, cyclePauseDurationSeconds: 0)
     }
 
+    /// Returns whether maximum allowed machines existing at once reached
+    /// - Returns: Boolean, whether max node machines were reached or not
+    /// - Throws: An error if there was a problem getting total node machines
     public func reached() async throws -> Bool {
         let totalMachines = try await getTotalNodeMachines()
         let reached = reachedMaxNodeMachines(totalMachines: totalMachines)
@@ -31,11 +34,16 @@ internal class MaxNodeMachinesReachedHandler: SeleniumGridNodeMachineAutoscaler 
 
     private func logReachedMaxNodeMachines(totalMachines: Int) {
         logger.info(
-            "The threshold of \(maxNodeMachinesAllowed) running node machines reached. No additional node machines will be created.",
+            """
+            The threshold of \(maxNodeMachinesAllowed) running node machines reached. 
+            No additional node machines will be created.
+            """,
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
                 "total_node_machines": .string(String(totalMachines))
             ]
         )
     }
+
+    deinit {}
 }

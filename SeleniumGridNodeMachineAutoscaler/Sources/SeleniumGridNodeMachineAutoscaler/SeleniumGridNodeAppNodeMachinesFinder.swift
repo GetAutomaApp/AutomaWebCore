@@ -6,11 +6,14 @@
 import Vapor
 
 internal struct SeleniumGridNodeAppNodeMachinesFinder: SeleniumGridNodeAppInteractorBase {
-    let logger: Logger
-    let client: any Client
-    var payload: SeleniumGridNodeAppInteractorPayload
-    var flyAPIHTTPRequestAuthenticationHeader: [(String, String)]
+    internal let logger: Logger
+    internal let client: any Client
+    internal var payload: SeleniumGridNodeAppInteractorPayload
+    internal var flyAPIHTTPRequestAuthenticationHeader: [(String, String)]
 
+    /// Get a list of all node machines
+    /// - Throws: An error if there was a problem getting list of all machines from fly.io machines API
+    /// - Returns: NodeMachines
     public func getListOfAllNodeMachines() async throws -> NodeMachines {
         return try await getAllNodeMachinesList()
     }

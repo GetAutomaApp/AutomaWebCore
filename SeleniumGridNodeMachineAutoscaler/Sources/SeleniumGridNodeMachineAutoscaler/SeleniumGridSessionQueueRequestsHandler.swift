@@ -6,10 +6,13 @@
 import Vapor
 
 internal struct SeleniumGridSessionQueueRequestsHandler: SeleniumGridInteractor {
-    var client: any Client
-    var logger: Logger
-    var seleniumGridHubBase: String
+    internal let client: any Client
+    internal let logger: Logger
+    internal let seleniumGridHubBase: String
 
+    /// Get total session requests from selenium grid hub
+    /// - Throws: An error if there was a problem making a request to Selenium hub
+    /// - Returns: Total session requests
     public func getTotalRequests() async throws -> Int {
         let response = try await getGridSessionQueueReponse()
         return getTotalSessionQueueRequestsFromResponse(response)
@@ -22,15 +25,15 @@ internal struct SeleniumGridSessionQueueRequestsHandler: SeleniumGridInteractor 
     }
 
     internal struct SessionQueueResponse: Content {
-        let data: SessionQueueResponseData
+        internal let data: SessionQueueResponseData
     }
 
     internal struct SessionQueueResponseData: Content {
-        let sessionsInfo: SessionsInfo
+        internal let sessionsInfo: SessionsInfo
     }
 
     internal struct SessionsInfo: Content {
-        let sessionQueueRequests: [String]
+        internal let sessionQueueRequests: [String]
     }
 
     private func logGetGridSessionQueueResponseStarted() {
@@ -59,7 +62,7 @@ internal struct SeleniumGridSessionQueueRequestsHandler: SeleniumGridInteractor 
     }
 
     internal struct SeleniumGridGraphQLQuery: Content {
-        let query: String
+        internal let query: String
     }
 
     private func decodeSessionQueueResponseFromClientResponse(_ response: ClientResponse) throws

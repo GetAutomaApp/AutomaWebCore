@@ -6,20 +6,22 @@
 import Vapor
 
 internal struct CycleSleeper {
-    let config: CycleSleeperConfig
-    let logger: Logger
+    internal let config: CycleSleeperConfig
+    internal let logger: Logger
 
-    init(_ config: CycleSleeperConfig, logger: Logger) {
+    internal init(_ config: CycleSleeperConfig, logger: Logger) {
         self.config = config
         self.logger = logger
     }
 
     internal struct CycleSleeperConfig {
-        let duration: Int
-        let startMessage: String? = nil
-        let completionMessage: String? = nil
+        internal let duration: Int
+        internal let startMessage: String? = nil
+        internal let completionMessage: String? = nil
     }
 
+    /// Sleep for a cycle
+    /// - Throws: An error if `Task.sleep()` failed for some reason
     public func sleep() async throws {
         logSleepBetweenCycleStarted()
         try await Task.sleep(for: .seconds(config.duration))

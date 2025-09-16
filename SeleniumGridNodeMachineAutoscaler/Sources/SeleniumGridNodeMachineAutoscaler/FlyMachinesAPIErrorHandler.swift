@@ -6,10 +6,12 @@
 import Vapor
 
 internal struct FlyMachinesAPIErrorHandler {
-    let payload: FlyMachinesAPIErrorHandlerPayload
-    let logger: Logger
+    internal let payload: FlyMachinesAPIErrorHandlerPayload
+    internal let logger: Logger
 
-    func handle() throws {
+    /// Generic handler for handling fly.io machines API errors
+    /// - Throws: `SeleniumGridNodeMachineAutoscalerError.flyMachinesAPIError`
+    public func handle() throws {
         logFlyAPIError()
         try throwFlyMachinesAPIError()
     }
@@ -34,7 +36,7 @@ internal struct FlyMachinesAPIErrorHandler {
     private func mergeFlyAPIErrorLogMetadataBaseWithMetadata(base: Logger.Metadata) -> Logger
         .Metadata
     {
-        payload.metadata.merging(base, uniquingKeysWith: { first, _ in first })
+        payload.metadata.merging(base) { first, _ in first }
     }
 
     private func logFlyAPIErrorWithFinalMetadata(finalMetadata: Logger.Metadata) {

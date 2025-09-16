@@ -4,6 +4,8 @@
 // All rights reserved.
 
 internal class SeleniumGridNodeAutoOffMachineDestroyer: SeleniumGridNodeMachineAutoscaler {
+    /// Auto-destroy off machines
+    /// - Throws: An error if there was a problem auto-destroying off machines
     public func autoDestroyAllOffNodeMachines() async throws {
         try await autoDestroyAllOffNodeMachinesImpl()
     }
@@ -79,4 +81,6 @@ internal class SeleniumGridNodeAutoOffMachineDestroyer: SeleniumGridNodeMachineA
         cycleCount += 1
         try await autoDestroyAllOffNodeMachines()
     }
+
+    deinit {}
 }

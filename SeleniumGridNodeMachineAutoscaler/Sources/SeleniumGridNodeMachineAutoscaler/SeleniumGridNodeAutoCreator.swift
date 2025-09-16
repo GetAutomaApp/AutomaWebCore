@@ -6,10 +6,6 @@
 import AutomaUtilities
 import Vapor
 
-// TODO:
-// - [ ] add more logs
-// - [ ] better error handling
-
 internal protocol SeleniumGridInteractor {
     var client: any Client { get }
     var logger: Logger { get }
@@ -17,12 +13,15 @@ internal protocol SeleniumGridInteractor {
 }
 
 internal class SeleniumGridNodeAutoCreator: SeleniumGridNodeMachineAutoscaler, SeleniumGridInteractor {
-    let seleniumGridHubBase: String
-    init(client: any Client, logger: Logger, cyclePauseDurationSeconds: Int) throws {
+    internal let seleniumGridHubBase: String
+
+    internal init(client: any Client, logger: Logger, cyclePauseDurationSeconds: Int) throws {
         seleniumGridHubBase = try Environment.getOrThrow("SELENIUM_GRID_HUB_BASE")
         try super.init(logger: logger, client: client, cyclePauseDurationSeconds: cyclePauseDurationSeconds)
     }
 
+    /// Auto-create node machines
+    /// - Throws: An error if there was a problem auto-creating node machines
     public func autoCreateNodeMachines() async throws {
         try await autoCreateNodeMachinesImpl()
     }
@@ -96,4 +95,6 @@ internal class SeleniumGridNodeAutoCreator: SeleniumGridNodeMachineAutoscaler, S
     private func createNodeMachine() async throws {
         try await NodeMachineCreator(logger: logger, client: client, seleniumGridHubBase: seleniumGridHubBase).create()
     }
+
+    deinit {}
 }
