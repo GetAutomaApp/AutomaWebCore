@@ -3,81 +3,92 @@
 // All source code and related assets are the property of GetAutomaApp.
 // All rights reserved.
 
+import AutomaUtilities
 import Vapor
 
 internal protocol SeleniumGridNodeAppInteractorBase {
-    var nodesAppMachineAPIURL: String { get }
-    var flyAPIToken: String { get }
-    var authHeader: [(String, String)] { get }
+    var client: any Client { get }
+    var logger: Logger { get }
+    var payload: SeleniumGridNodeAppInteractorPayload { get }
+    var flyAPIHTTPRequestAuthenticationHeader: [(String, String)] { get }
+}
+
+internal struct SeleniumGridNodeAppInteractorPayload: Content {
+    internal let nodesAppMachineAPIURL: String
+    internal let flyAPIToken: String
+}
+
+internal extension SeleniumGridNodeAppInteractorBase {
+    typealias FlyAPIError = [String: String]
+
+    func decodeErrorFromResponse(_ response: ClientResponse) throws -> FlyAPIError {
+        return try response.content.decode(FlyAPIError.self)
+    }
+
+    func isInvalidHTTPResponseStatus(status: HTTPStatus) -> Bool {
+        return status != .ok
+    }
+
+    func handleFlyMachinesAPIError(payload: FlyMachinesAPIErrorHandlerPayload) throws {
+        try FlyMachinesAPIErrorHandler(payload: payload, logger: logger).handle()
+    }
+}
+
+internal struct FlyMachinesAPIErrorHandlerPayload {
+    internal let message: String
+    internal let metadata: Logger.Metadata = [:]
+    internal let error: SeleniumGridNodeAppInteractorBase.FlyAPIError
 }
 
 internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase {
-    let nodesAppMachineAPIURL: String
-    let flyAPIToken: String
-    let authHeader: [(String, String)]
-    let logger: Logger
-    let client: any Client
+    internal let payload: SeleniumGridNodeAppInteractorPayload
+    internal let flyAPIHTTPRequestAuthenticationHeader: [(String, String)]
+    internal let logger: Logger
+    internal let client: any Client
 
-    init(logger: Logger, client: any Client) throws {
-        guard
-            let flyAPIURL = try URL(string: Environment.getOrThrow("FLY_API_URL"))
-        else {
-            throw Abort(.internalServerError)
-        }
-
+    internal init(logger: Logger, client: any Client) throws {
         self.logger = logger
         self.client = client
-        nodesAppMachineAPIURL = "\(flyAPIURL.absoluteString)/v1/apps/automa-web-core-seleniumgrid-node/machines"
-        flyAPIToken = try Environment.getOrThrow("SELENIUM_GRID_NODE_FLY_APP_API_TOKEN")
-        authHeader = [("Authorization", "Bearer \(flyAPIToken)")]
+
+        let flyAPIURL = try URL.fromString(payload: .init(string: Environment.getOrThrow("FLY_API_URL")))
+        let flyAPIToken = try Environment.getOrThrow("SELENIUM_GRID_NODE_FLY_APP_API_TOKEN")
+
+        flyAPIHTTPRequestAuthenticationHeader = [("Authorization", "Bearer \(flyAPIToken)")]
+
+        payload = .init(
+            nodesAppMachineAPIURL: "\(flyAPIURL.absoluteString)/v1/apps/automa-web-core-seleniumgrid-node/machines",
+            flyAPIToken: flyAPIToken
+        )
     }
 
-    internal struct NodeMachine: Content {
-        let id: String
-        let state: String
-        let createdAt: Date
-
-        public enum CodingKeys: String, CodingKey {
-            case id
-            case state
-            case createdAt = "created_at"
-        }
+    internal func getListOfAllNodeMachines() async throws -> NodeMachines {
+        try await SeleniumGridNodeAppNodeMachinesFinder(
+            logger: logger,
+            client: client,
+            payload: payload,
+            flyAPIHTTPRequestAuthenticationHeader: flyAPIHTTPRequestAuthenticationHeader,
+        )
+        .getListOfAllNodeMachines()
     }
 
-    internal func getListOfAllNodeMachines() async throws -> [NodeMachine] {
-        logger.info(
-            "Getting a list of all machines.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-            ]
-        )
-        let res = try await client.get(
-            .init(stringLiteral: nodesAppMachineAPIURL),
-            headers: .init(authHeader)
-        )
+    internal func sleepBetweenCycle(config: CycleSleeper.CycleSleeperConfig) async throws {
+        try await CycleSleeper(config, logger: logger).sleep()
+    }
 
-        if res.status != .ok {
-            let responseContent = try res.content.decode([String: String].self)
-            logger.info(
-                "Failed to get a list of all machines in nodes app",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                    "response_content": .string("\(responseContent)"),
-                ]
-            )
-            throw Abort(.internalServerError)
-        }
+    deinit {}
+}
 
-        let allMachines = try res.content.decode([NodeMachine].self)
+internal struct NodeMachine: Content {
+    internal let id: String
+    internal let state: String
+    internal let createdAt: Date
 
-        logger.info(
-            "Got list of all machines.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "total_machines": .string(String(allMachines.count))
-            ]
-        )
-
-        return allMachines
+    /// Coding keys for `NodeMachine`
+    public enum CodingKeys: String, CodingKey {
+        case id
+        case state
+        case createdAt = "created_at"
     }
 }
+
+internal typealias NodeMachines = [NodeMachine]
