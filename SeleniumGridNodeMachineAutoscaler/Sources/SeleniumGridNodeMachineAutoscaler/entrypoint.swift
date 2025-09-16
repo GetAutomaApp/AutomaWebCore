@@ -9,8 +9,10 @@ import NIOPosix
 import Vapor
 
 @main
-enum Entrypoint {
-    static func main() async throws {
+internal enum Entrypoint {
+    /// The main function that initializes and runs the application.
+    /// - Throws: Throws an error if the application fails to start or execute.
+    public static func main() async throws {
         var env = try Environment.detect()
         try LoggingSystem.bootstrap(from: &env)
 
@@ -27,7 +29,7 @@ enum Entrypoint {
         // metadata: ["success": .stringConvertible(executorTakeoverSuccess)])
 
         do {
-            try await configure(app)
+            try configure(app)
             try await app.execute()
         } catch {
             app.logger.report(error: error)
