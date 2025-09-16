@@ -19,7 +19,13 @@
     "compose:build-no-cache-and-up": "npx npm-run-all --sequential compose:build:no-cache compose:up",
     "compose:down": "npm run compose -- down",
     "compose:ps": "npm run compose -- ps -a",
-    "compose": "cd ./SeleniumGridNodeMachineAutoscaler ; docker-compose"
+    "compose": "cd ./SeleniumGridNodeMachineAutoscaler ; docker-compose",
+    "autoscaler:all": "npx npm-run-all --parallel autoscaler:creator autoscaler:off_machines_destroyer autoscaler:old_machines_destroyer",
+    "autoscaler:creator": "cd ./SeleniumGridNodeMachineAutoscaler/ ; swift run SeleniumGridNodeMachineAutoscaler autocreator",
+    "autoscaler:off_machines_destroyer": "cd ./SeleniumGridNodeMachineAutoscaler/ ; swift run SeleniumGridNodeMachineAutoscaler autodestroyer offMachines",
+    "autoscaler:old_machines_destroyer": "cd ./SeleniumGridNodeMachineAutoscaler/ ; swift run SeleniumGridNodeMachineAutoscaler autodestroyer oldMachines",
+    "deploy": "fly deploy --ha=false",
+    "deploy:autoscaler": "npm run deploy -- --config=./SeleniumGridNodeMachineAutoscaler/infra/autoscaler.toml"
   },
   "repository": {
     "type": "git",

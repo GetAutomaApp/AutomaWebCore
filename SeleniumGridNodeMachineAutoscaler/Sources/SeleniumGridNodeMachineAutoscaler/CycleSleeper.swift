@@ -32,7 +32,7 @@ internal struct CycleSleeper {
         logger.info(
             Logger
                 .Message(stringLiteral: config
-                    .startMessage ?? "Pausing for \(config.duration) before next cycle starts."),
+                    .startMessage ?? "Pausing for \(config.duration) seconds before next cycle starts."),
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
             ]
@@ -43,7 +43,7 @@ internal struct CycleSleeper {
         logger.info(
             Logger
                 .Message(stringLiteral: config
-                    .completionMessage ?? "Pausing for \(config.duration) before completed."),
+                    .completionMessage ?? "Sleep cycle of \(config.duration) seconds completed."),
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
             ]
