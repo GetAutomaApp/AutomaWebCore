@@ -16,17 +16,32 @@ internal struct CycleSleeper {
 
     internal struct CycleSleeperConfig {
         let duration: Int
-        let message: String? = nil
+        let startMessage: String? = nil
+        let completionMessage: String? = nil
     }
 
     public func sleep() async throws {
         logSleepBetweenCycleStarted()
         try await Task.sleep(for: .seconds(config.duration))
+        logSleepBetweenCycleCompleted()
     }
 
     private func logSleepBetweenCycleStarted() {
         logger.info(
-            Logger.Message(stringLiteral: config.message ?? "Pausing for \(config.duration) before next cycle starts."),
+            Logger
+                .Message(stringLiteral: config
+                    .startMessage ?? "Pausing for \(config.duration) before next cycle starts."),
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+    }
+
+    private func logSleepBetweenCycleCompleted() {
+        logger.info(
+            Logger
+                .Message(stringLiteral: config
+                    .completionMessage ?? "Pausing for \(config.duration) before completed."),
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
             ]

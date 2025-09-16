@@ -20,6 +20,7 @@ internal class NodeMachineUpdater: NodeMachineCreationBase {
     }
 
     public func updateNodeHostURLEnvironmentVariable() async throws {
+        logUpdateMachineStarted()
         let updatedConfig = updateMachineConfiguation()
 
         let response = try await getUpdateNodeMachineResponse(updatedConfig: updatedConfig)
@@ -28,6 +29,16 @@ internal class NodeMachineUpdater: NodeMachineCreationBase {
         let updateResponseBody = try getResponseBodyFromUpdateNodeMachineResponse(response)
 
         logUpdateMachineSuccess(updateResponseBody: updateResponseBody)
+    }
+
+    private func logUpdateMachineStarted() {
+        logger.info(
+            "Updating node machine SE_NODE_HOST url.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "machine_id": .string(machineID)
+            ]
+        )
     }
 
     private func updateMachineConfiguation() -> MachinePropertyConfiguration {

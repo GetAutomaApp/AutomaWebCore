@@ -37,9 +37,7 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
         )
     }
 
-    private func destroyAllOldNodeMachines(_ allMachines: [SeleniumGridNodeAppNodeMachinesFinder
-            .NodeMachine]) async throws
-    {
+    private func destroyAllOldNodeMachines(_ allMachines: [NodeMachine]) async throws {
         if allMachines.count == 0 {
             return
         }
@@ -68,7 +66,7 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
         )
 
         for machine in machinesToStop {
-            try await destroyNodeMachine(id: machine.id)
+            try await deleteNodeMachine(id: machine.id)
         }
     }
 }
