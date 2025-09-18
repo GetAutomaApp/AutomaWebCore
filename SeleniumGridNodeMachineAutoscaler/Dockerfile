@@ -1,7 +1,7 @@
 # ================================
 # Build image
 # ================================
-FROM swift:6.0-noble AS build
+FROM swift:6.1-noble AS build
 
 # Install OS updates
 RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
@@ -19,6 +19,13 @@ WORKDIR /build
 COPY ./Package.* ./
 RUN swift package resolve \
     $([ -f ./Package.resolved ] && echo "--force-resolved-versions" || true)
+
+RUN --mount=type=secret,id=GITHUB_SSH_AUTHENTICATION_TOKEN \
+    echo "machine github.com login x password $(head -n 1 /run/secrets/GITHUB_SSH_AUTHENTICATION_TOKEN)" && \
+    git config \
+    --global \
+    url."https://${GITHUB_ID}:${GITHUB_SSH_AUTHENTICATION_TOKEN}@github.com/".insteadOf \
+    "https://github.com/"
 
 # Copy entire repo into container
 COPY . .
