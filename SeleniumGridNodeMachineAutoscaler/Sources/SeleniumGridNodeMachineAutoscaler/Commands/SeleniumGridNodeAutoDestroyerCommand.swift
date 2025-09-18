@@ -26,7 +26,7 @@ internal struct SeleniumGridNodeAutoDestroyerCommand: AsyncCommand {
         let destroyer = try SeleniumGridNodeAutoDestroyer(
             logger: context.application.logger,
             client: context.application.client,
-            cyclePauseDurationSeconds: 10
+            cyclePauseDurationSeconds: 30
         )
         switch signature.type {
         case "offMachines":
