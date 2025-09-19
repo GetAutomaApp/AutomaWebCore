@@ -9,5 +9,4 @@ db.sqlite
 .env
 .env.*
 !.env.example
-.build-secrets
 infra/GITHUB_SSH_AUTHENTICATION_TOKEN
