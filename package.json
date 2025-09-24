@@ -11,12 +11,21 @@
     "format": "swiftformat .",
     "lint": "swiftlint --config=.swiftlint.yml .",
     "update:submodules": "git submodule foreach --recursive 'branch=$(git remote show origin | awk \"/HEAD branch/ {print \\$NF}\"); git checkout $branch && git pull origin $branch' && CHANGED=$(git status --porcelain | grep '^ M \\.dotfiles' || true) && if [ -n \"$CHANGED\" ]; then npm run config; fi && git add -A && git commit -m \"chore: update submodules\" || echo 'No changes to commit'",
+    "compose:up": "npm run compose -- up -d",
+    "compose:build": "npm run compose -- build",
+    "compose:build:no-cache": "npm run compose -- build --no-cache",
+    "compose:build-and-up": "npx npm-run-all --sequential compose:build compose:up",
+    "compose:build-no-cache-and-up": "npx npm-run-all --sequential compose:build:no-cache compose:up",
+    "compose:down": "npm run compose -- down",
+    "compose:ps": "npm run compose -- ps -a",
+    "compose": "docker compose",
     "autoscaler:all": "npx npm-run-all --parallel autoscaler:creator autoscaler:off_machines_destroyer autoscaler:old_machines_destroyer",
     "autoscaler:creator": "cd ./SeleniumGridNodeMachineAutoscaler/ ; swift run SeleniumGridNodeMachineAutoscaler autocreator",
     "autoscaler:off_machines_destroyer": "cd ./SeleniumGridNodeMachineAutoscaler/ ; swift run SeleniumGridNodeMachineAutoscaler autodestroyer offMachines",
     "autoscaler:old_machines_destroyer": "cd ./SeleniumGridNodeMachineAutoscaler/ ; swift run SeleniumGridNodeMachineAutoscaler autodestroyer oldMachines",
     "deploy": "flyctl deploy --ha=false",
     "deploy:autoscaler": "cd ./SeleniumGridNodeMachineAutoscaler && npm run deploy -- ./SeleniumGridNodeMachineAutoscaler/ --config=./infra/autoscaler.toml --build-secret GITHUB_SSH_AUTHENTICATION_TOKEN=$(cat ./infra/GITHUB_SSH_AUTHENTICATION_TOKEN)"
+    "deploy:api": "cd ./API && npm run deploy -- ./API/ --config=./infra/api.toml"
   },
   "repository": {
     "type": "git",
