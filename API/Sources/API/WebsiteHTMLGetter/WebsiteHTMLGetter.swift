@@ -9,11 +9,13 @@ import Vapor
 
 internal struct WebsiteHTMLGetter {
     let logger: Logger
+    let url: URL
     let seleniumGridHubBase: URL
     let driver: WebDriver<ChromeDriver>
 
-    init(logger: Logger) async throws {
+    init(logger: Logger, url: URL) async throws {
         self.logger = logger
+        self.url = url
         seleniumGridHubBase = try URL
             .fromString(payload: .init(string: Environment.getOrThrow("SELENIUM_GRID_HUB_BASE")))
         driver = Self.getWebDriver(seleniumGridHubBase: seleniumGridHubBase)
@@ -33,18 +35,18 @@ internal struct WebsiteHTMLGetter {
         )
     }
 
-    public func get(url: URL) async throws -> String {
-        try await navigateDriverToURL(url)
+    public func get() async throws -> String {
+        try await navigateDriverToURL()
         return try await getActiveWindowOuterHTML()
     }
 
-    private func navigateDriverToURL(_ url: URL) async throws {
-        logNavigateToURLStarted(url)
+    private func navigateDriverToURL() async throws {
+        logNavigateToURLStarted()
         try await driver.navigateTo(url: url)
-        logNavigateToURLSuccess(url)
+        logNavigateToURLSuccess()
     }
 
-    private func logNavigateToURLStarted(_ url: URL) {
+    private func logNavigateToURLStarted() {
         logger.info(
             "Navigating WebDriver to URL to get HTML content as string.",
             metadata: [
@@ -54,7 +56,7 @@ internal struct WebsiteHTMLGetter {
         )
     }
 
-    private func logNavigateToURLSuccess(_ url: URL) {
+    private func logNavigateToURLSuccess() {
         logger.info(
             "Navigating WebDriver to URL to get HTML content as string success.",
             metadata: [
@@ -79,7 +81,10 @@ internal struct WebsiteHTMLGetter {
     private func unwrapActiveWindowOuterHTMLPropertyResponse(_ response: PostExecuteResponse) throws -> String {
         guard let outerHTMLString = response.value?.stringValue
         else {
-            throw Abort(.internalServerError)
+            throw AutomaGenericErrors
+                .notFound(
+                    message: "'html' element of URL '\(url.absoluteString)' 'outerHTML' property contains an empty value."
+                )
         }
         return outerHTMLString
     }

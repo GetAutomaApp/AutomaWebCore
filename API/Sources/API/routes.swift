@@ -12,7 +12,7 @@ func routes(_ app: Application) throws {
 
     app.get("get-html") { req async throws -> String in
         let content = try req.content.decode(HTMLGetterPayload.self)
-        return try await WebsiteHTMLGetter(logger: req.logger)
-            .get(url: URL.fromString(payload: .init(string: content.websiteURL)))
+        let url = try URL.fromString(payload: .init(string: content.websiteURL))
+        return try await WebsiteHTMLGetter(logger: req.logger, url: url).get()
     }
 }
