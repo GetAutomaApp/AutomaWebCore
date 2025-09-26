@@ -7,6 +7,9 @@ import AutomaUtilities
 import SwiftWebDriver
 import Vapor
 
+// TODO: scroll down the page to load all javascript before getting content, some websites (especially blogs/articles)
+// get the article content in chunks to have better performance and reduce web scraping success attempts
+
 internal struct WebsiteHTMLGetter {
     let logger: Logger
     let url: URL
