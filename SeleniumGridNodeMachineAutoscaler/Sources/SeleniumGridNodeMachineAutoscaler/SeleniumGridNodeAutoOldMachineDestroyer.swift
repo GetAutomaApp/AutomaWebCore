@@ -3,6 +3,7 @@
 // All source code and related assets are the property of GetAutomaApp.
 // All rights reserved.
 
+import AutomaUtilities
 import Vapor
 
 internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineAutoscaler {
@@ -44,8 +45,11 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
             return
         }
 
+        let nodeMachineExpirationMinutes = try getNodeMachineExpirationMinutes()
+
         let machinesToStop = allMachines.filter { machine in
-            let identifyAsOldAt = machine.createdAt.addingTimeInterval(60 * 60)
+            let identifyAsOldAt = machine.createdAt
+                .addingTimeInterval(60 * nodeMachineExpirationMinutes)
             return Date() > identifyAsOldAt
         }
 
@@ -70,6 +74,22 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
         for machine in machinesToStop {
             try await deleteNodeMachine(id: machine.id)
         }
+    }
+
+    private func getNodeMachineExpirationMinutes() throws -> TimeInterval {
+        let nodeMachineExpirationMinutes = try Environment
+            .getOrThrow("NODE_MACHINE_EXPIRATION_MINUTES")
+
+        guard let nodeMachineExpirationMinutesDouble = TimeInterval(nodeMachineExpirationMinutes)
+        else {
+            throw AutomaGenericErrors
+                .guardFailed(
+                    message: """
+                    Could not convert 'NODE_MACHINE_EXPIRATION_MINUTES' of value '\(nodeMachineExpirationMinutes)' to type `TimeInterval`"
+                    """
+                )
+        }
+        return nodeMachineExpirationMinutesDouble
     }
 
     deinit {}
