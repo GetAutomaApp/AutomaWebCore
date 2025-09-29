@@ -1,2 +1,3 @@
 .swiftlint.yml
 .swiftformat
+infra/GITHUB_SSH_AUTHENTICATION_TOKEN
