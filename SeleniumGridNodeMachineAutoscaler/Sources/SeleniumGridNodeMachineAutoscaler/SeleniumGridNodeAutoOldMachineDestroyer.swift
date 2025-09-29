@@ -54,22 +54,11 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
         }
 
         if machinesToStop.isEmpty {
-            logger.info(
-                "None of the \(allMachines.count) machines in a considered old. No machines will be destroyed.",
-                metadata: [
-                    "to": .string("\(String(describing: Self.self)).\(#function)"),
-                ]
-            )
+            logNoMachinesToDestroy(totalMachines: allMachines.count)
             return
         }
 
-        logger.info(
-            "Destroying all old node machines started.",
-            metadata: [
-                "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "total_machines_to_destroy": .string(String(machinesToStop.count))
-            ]
-        )
+        logDeleteAllOldNodeMachinesStarted(totalMachines: allMachines.count)
 
         for machine in machinesToStop {
             try await deleteNodeMachine(id: machine.id)
@@ -80,16 +69,31 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
         let nodeMachineExpirationMinutes = try Environment
             .getOrThrow("NODE_MACHINE_EXPIRATION_MINUTES")
 
-        guard let nodeMachineExpirationMinutesDouble = TimeInterval(nodeMachineExpirationMinutes)
+        guard let nodeMachineExpirationMinutesInt = TimeInterval(nodeMachineExpirationMinutes)
         else {
-            throw AutomaGenericErrors
-                .guardFailed(
-                    message: """
-                    Could not convert 'NODE_MACHINE_EXPIRATION_MINUTES' of value '\(nodeMachineExpirationMinutes)' to type `TimeInterval`"
-                    """
-                )
+            throw Abort(.internalServerError)
         }
-        return nodeMachineExpirationMinutesDouble
+
+        return nodeMachineExpirationMinutesInt
+    }
+
+    private func logNoMachinesToDestroy(totalMachines: Int) {
+        logger.info(
+            "None of the \(totalMachines) machines in a considered old. No machines will be destroyed.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+    }
+
+    private func logDeleteAllOldNodeMachinesStarted(totalMachines: Int) {
+        logger.info(
+            "Destroying all old node machines started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "total_machines_to_destroy": .string(String(totalMachines))
+            ]
+        )
     }
 
     deinit {}
