@@ -27,7 +27,9 @@ internal struct WebsiteHTMLGetter {
 
     private static func getWebDriver(seleniumGridHubBase: URL) -> WebDriver<ChromeDriver> {
         let chromeOption = ChromeOptions(
-            args: []
+            args: [
+                Args(.headless)
+            ]
         )
 
         return WebDriver(

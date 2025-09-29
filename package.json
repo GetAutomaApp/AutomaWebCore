@@ -25,8 +25,9 @@
     "autoscaler:off_machines_destroyer": "npm run swift:build-and-run ./SeleniumGridNodeMachineAutoscaler SeleniumGridNodeMachineAutoscaler autodestroyer offMachines",
     "autoscaler:old_machines_destroyer": "npm run swift:build-and-run ./SeleniumGridNodeMachineAutoscaler SeleniumGridNodeMachineAutoscaler autodestroyer oldMachines",
     "api": "npm run swift:build-and-run -- ./API API",
-    "deploy:autoscaler": "cd ./SeleniumGridNodeMachineAutoscaler && npm run deploy -- ./SeleniumGridNodeMachineAutoscaler/ --config=./infra/autoscaler.toml --build-secret GITHUB_SSH_AUTHENTICATION_TOKEN=$(cat ./infra/GITHUB_SSH_AUTHENTICATION_TOKEN)",
-    "deploy:api": "cd ./API && npm run deploy -- ./API/ --config=./infra/api.toml"
+    "deploy": "flyctl deploy --ha=false",
+    "deploy:autoscaler": "cd ./SeleniumGridNodeMachineAutoscaler && npm run deploy -- ./SeleniumGridNodeMachineAutoscaler/ --config=./infra/autoscaler.toml --build-secret GITHUB_SSH_AUTHENTICATION_TOKEN=$(cat ../infra/GITHUB_SSH_AUTHENTICATION_TOKEN)",
+    "deploy:api": "cd ./API && npm run deploy -- ./API/ --config=./infra/api.toml --build-secret GITHUB_SSH_AUTHENTICATION_TOKEN=$(cat ../infra/GITHUB_SSH_AUTHENTICATION_TOKEN)"
   },
   "repository": {
     "type": "git",
