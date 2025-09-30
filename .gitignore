@@ -1,6 +1,6 @@
 .swiftlint.yml
 .swiftformat
-infra/GITHUB_SSH_AUTHENTICATION_TOKEN
+infra/docker-secrets/*
 .env
 .env.*
 !.env.example
