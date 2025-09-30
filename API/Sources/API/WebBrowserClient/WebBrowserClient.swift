@@ -1,4 +1,4 @@
-// WebsiteHTMLGetter.swift
+// WebBrowserClient.swift
 // Copyright (c) 2025 GetAutomaApp
 // All source code and related assets are the property of GetAutomaApp.
 // All rights reserved.
@@ -7,25 +7,24 @@ import AutomaUtilities
 import SwiftWebDriver
 import Vapor
 
-// TODO: scroll down the page to load all javascript before getting content, some websites (especially blogs/articles)
-// get the article content in chunks to have better performance and reduce web scraping success attempts
-
-internal struct WebsiteHTMLGetter {
+internal struct WebBrowserClient {
     let logger: Logger
-    let url: URL
+    let payload: APIEndpointPayload
     let seleniumGridHubBase: URL
     let driver: WebDriver<ChromeDriver>
 
-    init(logger: Logger, url: URL) async throws {
+    init(logger: Logger, payload: APIEndpointPayload) async throws {
         self.logger = logger
-        self.url = url
+        self.payload = payload
         seleniumGridHubBase = try URL
             .fromString(payload: .init(string: Environment.getOrThrow("SELENIUM_GRID_HUB_BASE")))
-        driver = Self.getWebDriver(seleniumGridHubBase: seleniumGridHubBase)
+        driver = Self.getWebDriver(seleniumGridHubBase: seleniumGridHubBase, logger: logger)
         try await driver.start()
     }
 
-    private static func getWebDriver(seleniumGridHubBase: URL) -> WebDriver<ChromeDriver> {
+    private static func getWebDriver(seleniumGridHubBase: URL, logger: Logger) -> WebDriver<ChromeDriver> {
+        logGetWebDriverStarted(logger: logger)
+
         let chromeOption = ChromeOptions(
             args: [
                 Args(.headless)
@@ -40,14 +39,32 @@ internal struct WebsiteHTMLGetter {
         )
     }
 
-    public func get() async throws -> String {
+    private static func logGetWebDriverStarted(logger: Logger) {
+        logger.info(
+            "Getting new webdriver instance started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+    }
+
+    public func getHTML() async throws -> String {
         try await navigateDriverToURL()
+        logger.info(
+            "API Endpoint Payload: \(payload).",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+            ]
+        )
+        if payload.scrollToBottom {
+            try await scrollToBottom()
+        }
         return try await getActiveWindowOuterHTML()
     }
 
     private func navigateDriverToURL() async throws {
         logNavigateToURLStarted()
-        try await driver.navigateTo(url: url)
+        try await driver.navigateTo(url: payload.url)
         logNavigateToURLSuccess()
     }
 
@@ -56,7 +73,7 @@ internal struct WebsiteHTMLGetter {
             "Navigating WebDriver to URL to get HTML content as string.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "url": .string(url.absoluteString),
+                "url": .string(payload.url.absoluteString),
             ]
         )
     }
@@ -66,7 +83,33 @@ internal struct WebsiteHTMLGetter {
             "Navigating WebDriver to URL to get HTML content as string success.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "url": .string(url.absoluteString),
+                "url": .string(payload.url.absoluteString),
+            ]
+        )
+    }
+
+    private func scrollToBottom() async throws {
+        logScrollToBottomStarted()
+        try await driver.execute("window.scrollBy(0, document.querySelector(\"html\").scrollHeight)")
+        logScrollToBottomCompleted()
+    }
+
+    private func logScrollToBottomStarted() {
+        logger.info(
+            "Scrolling to bottom of page document started.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "url": .string(payload.url.absoluteString),
+            ]
+        )
+    }
+
+    private func logScrollToBottomCompleted() {
+        logger.info(
+            "Scrolling to bottom of page document completed.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "url": .string(payload.url.absoluteString),
             ]
         )
     }
@@ -88,7 +131,7 @@ internal struct WebsiteHTMLGetter {
         else {
             throw AutomaGenericErrors
                 .notFound(
-                    message: "'html' element of URL '\(url.absoluteString)' 'outerHTML' property contains an empty value."
+                    message: "'html' element of URL '\(payload.url.absoluteString)' 'outerHTML' property contains an empty value."
                 )
         }
         return outerHTMLString
