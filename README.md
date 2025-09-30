@@ -8,3 +8,8 @@
 4. Launch AutomaWebCore main API: `cd ./API/ ; fly launch --org <org-name> --ha=false --config=./infra/api.toml`
     - Redeploy: `npm run deploy:api`
     - Set all secrets with `cd ./API/ ; fly secrets import < ./.env.production --app automa-web-core-api`
+
+**files to create**
+1. All `.env` files in all packages that require environment variables (not in root path, inside packages)
+1. Create `./infra/docker-secrets/` directory with the following files and secrets:
+    1. "GITHUB_SSH_AUTHENTICATION_TOKEN": A Github fine-grained token that allows cloning AutomaUtilities repository (private)
