@@ -1,4 +1,4 @@
-app = 'automa-web-core-seleniumgrid-node-autoscaler'
+app = 'automa-web-core-seleniumgrid-node-autoscaler-__FLY_ENVIRONMENT__'
 primary_region = 'jnb'
 
 [build]
@@ -24,3 +24,7 @@ processes = [
 memory = '1gb'
 cpu_kind = 'shared'
 cpus = 1
+
+[metrics]
+port = 6834
+path = "/metrics"

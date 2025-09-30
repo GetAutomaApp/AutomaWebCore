@@ -1,0 +1,16 @@
+{
+  "grafana" : {
+    "current_environment" : "staging"
+  },
+  "actionsSecrets" : {
+    "owner_repo" : ""
+  },
+  "fly" : {
+    "config_files_root" : "./infra",
+    "environments" : [
+      "production",
+      "sandbox",
+      "staging"
+    ]
+  }
+}
