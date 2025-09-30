@@ -9,10 +9,4 @@ func routes(_ app: Application) throws {
     app.get { _ async in
         "It works!"
     }
-
-    app.get("get-html") { req async throws -> String in
-        let content = try req.content.decode(HTMLGetterPayload.self)
-        let url = try URL.fromString(payload: .init(string: content.websiteURL))
-        return try await WebsiteHTMLGetter(logger: req.logger, url: url).get()
-    }
 }
