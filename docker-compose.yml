@@ -3,7 +3,7 @@ services:
     network_mode: host
     build:
       context: .
-      dockerfile: ./infra/HTTPDDockerfile
+      dockerfile: ./infra/dockerfiles/HTTPDDockerfile
     volumes:
       - ./TestAssets:/usr/local/apache2/htdocs/
     ports:
