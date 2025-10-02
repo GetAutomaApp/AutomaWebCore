@@ -9,7 +9,7 @@ import Prometheus
 
 internal enum AutoscalerMetric {
     public static func deleteSeleniumGridNodeAppFlyMachine(
-        machineID _: String,
+        machineID: String,
         status: MetricStatus,
     ) -> Prometheus.Counter {
         MetricsService.global.makeCounter(
