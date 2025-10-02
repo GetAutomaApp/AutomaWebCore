@@ -88,9 +88,14 @@ internal class NodeMachineCreator: NodeMachineCreationBase {
     }
 
     private func createImpl() async throws {
-        logCreateNodeMachineStarted()
+        sendTelemetryDataOnCreateNodeMachineStarted()
         let machineID = try await createNodeMachine()
         try await updateAndStartMachine(machineID: machineID)
+    }
+
+    private func sendTelemetryDataOnCreateNodeMachineStarted() {
+        AutoscalerMetric.createSeleniumGridNodeAppFlyMachine(status: .start).increment()
+        logCreateNodeMachineStarted()
     }
 
     private func logCreateNodeMachineStarted() {
@@ -103,11 +108,24 @@ internal class NodeMachineCreator: NodeMachineCreationBase {
     }
 
     private func createNodeMachine() async throws -> MachineIdentifier {
-        let response = try await getCreateNodeMachineResponse()
-        try handleInvalidCreateNodeMachineResponse(response: response)
-        let machineID = try getMachineIDFromCreateMachineResponse(response)
-        logNodeMachineCreationSuccess(machineID: machineID)
+        let machineID: MachineIdentifier
+        do {
+            let response = try await getCreateNodeMachineResponse()
+            try handleInvalidCreateNodeMachineResponse(response: response)
+            machineID = try getMachineIDFromCreateMachineResponse(response)
+        } catch {
+            sendTelemetryDataOnCreateNodeMachineFailed(error: error)
+            // TODO: refactor throwing direct error in `SeleniumGridNodeMachineAutoscaler` and `NodeMachineDeleter`
+            // to custom `SeleniumGridNodeMachineAutoscalerError`
+            throw error
+        }
+        sendTelemetryDataOnCreateNodeMachineSuccess(machineID: machineID)
         return machineID
+    }
+
+    private func sendTelemetryDataOnCreateNodeMachineSuccess(machineID: MachineIdentifier) {
+        AutoscalerMetric.createSeleniumGridNodeAppFlyMachine(status: .success).increment()
+        logNodeMachineCreationSuccess(machineID: machineID)
     }
 
     private func getCreateNodeMachineResponse() async throws
@@ -131,6 +149,21 @@ internal class NodeMachineCreator: NodeMachineCreationBase {
             let id: String
         }
         return try response.content.decode(CreateMachineResponseContent.self).id
+    }
+
+    private func sendTelemetryDataOnCreateNodeMachineFailed(error: any Error) {
+        AutoscalerMetric.createSeleniumGridNodeAppFlyMachine(status: .fail).increment()
+        logNodeMachineCreationFailed(error: error)
+    }
+
+    private func logNodeMachineCreationFailed(error: any Error) {
+        logger.info(
+            "Node machine creation failed.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "error": .string(error.localizedDescription),
+            ]
+        )
     }
 
     private func logNodeMachineCreationSuccess(machineID: MachineIdentifier) {
