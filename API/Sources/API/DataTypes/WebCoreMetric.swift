@@ -17,8 +17,8 @@ internal enum APIMetric {
             name: "get_website_html_call",
             labels: [
                 "status": status.rawValue,
-                "website_url": websiteUrl,
-                "js_render": jsRender,
+                "website_url": websiteUrl.absoluteString,
+                "js_render": "\(jsRender)",
             ]
         )
     }

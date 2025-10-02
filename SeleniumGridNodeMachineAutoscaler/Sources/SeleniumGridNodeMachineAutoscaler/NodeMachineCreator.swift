@@ -114,9 +114,8 @@ internal class NodeMachineCreator: NodeMachineCreationBase {
             try handleInvalidCreateNodeMachineResponse(response: response)
             machineID = try getMachineIDFromCreateMachineResponse(response)
         } catch {
-            sendTelemetryDataOnCreateNodeMachineFailed(error: error)
-            // TODO: refactor throwing direct error in `SeleniumGridNodeMachineAutoscaler` and `NodeMachineDeleter`
-            // to custom `SeleniumGridNodeMachineAutoscalerError`
+            sendTelemetryDataOnCreateNodeMachineFail(error: error)
+            // TODO: refactor throwing direct error to custom `SeleniumGridNodeMachineAutoscalerError`
             throw error
         }
         sendTelemetryDataOnCreateNodeMachineSuccess(machineID: machineID)
@@ -151,12 +150,12 @@ internal class NodeMachineCreator: NodeMachineCreationBase {
         return try response.content.decode(CreateMachineResponseContent.self).id
     }
 
-    private func sendTelemetryDataOnCreateNodeMachineFailed(error: any Error) {
+    private func sendTelemetryDataOnCreateNodeMachineFail(error: any Error) {
         AutoscalerMetric.createSeleniumGridNodeAppFlyMachine(status: .fail).increment()
-        logNodeMachineCreationFailed(error: error)
+        logNodeMachineCreationFail(error: error)
     }
 
-    private func logNodeMachineCreationFailed(error: any Error) {
+    private func logNodeMachineCreationFail(error: any Error) {
         logger.info(
             "Node machine creation failed.",
             metadata: [
