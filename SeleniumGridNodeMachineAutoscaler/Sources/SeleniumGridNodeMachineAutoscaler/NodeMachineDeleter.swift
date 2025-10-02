@@ -16,9 +16,13 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
     /// Delete node machine using fly.io machines API
     /// - Throws: An error if deletion of machine failed
     public func delete() async throws {
-        logDeleteNodeMachineStarted()
+        sendTelemetryDataOnDeleteNodeMachineStarted()
         try await getAndValidateDeleteNodeMachineResponse()
-        logDeleteNodeMachineSuccess()
+    }
+
+    private func sendTelemetryDataOnDeleteNodeMachineStarted() {
+        AutoscalerMetric.deleteSeleniumGridNodeAppFlyMachine(machineID: machineID, status: .start).increment()
+        logDeleteNodeMachineStarted()
     }
 
     private func logDeleteNodeMachineStarted() {
@@ -31,9 +35,19 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
         )
     }
 
+    private func sendTelemetryDataOnDeleteNodeMachineSuccess() {
+        logDeleteNodeMachineSuccess()
+        AutoscalerMetric.deleteSeleniumGridNodeAppFlyMachine(machineID: machineID, status: .success).increment()
+    }
+
     private func getAndValidateDeleteNodeMachineResponse() async throws {
-        let response = try await getDeleteNodeMachineResponse()
-        try validateDeleteNodeMachineResponseStatus(response: response)
+        do {
+            let response = try await getDeleteNodeMachineResponse()
+            try validateDeleteNodeMachineResponseStatus(response: response)
+        } catch {
+            sendTelemetryDataOnGetAndValidateDeleteNodeMachineResponseFail(error: error)
+            throw error
+        }
     }
 
     private func getDeleteNodeMachineResponse() async throws -> ClientResponse {
@@ -52,6 +66,22 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
     private func handleInvalidDeleteNodeMachineResponse(response: ClientResponse) throws {
         let error = try decodeErrorFromResponse(response)
         try handleFlyMachinesAPIError(payload: .init(message: "Failed to delete machine", error: error))
+    }
+
+    private func sendTelemetryDataOnGetAndValidateDeleteNodeMachineResponseFail(error: any Error) {
+        logGetAndValidateDeleteNodeMachineResponseFail(error: error)
+        AutoscalerMetric.deleteSeleniumGridNodeAppFlyMachine(machineID: machineID, status: .fail).increment()
+    }
+
+    private func logGetAndValidateDeleteNodeMachineResponseFail(error: any Error) {
+        logger.error(
+            "Failed to delete node machine.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "machine_id": .string(machineID),
+                "error": .string(error.localizedDescription),
+            ]
+        )
     }
 
     private func logDeleteNodeMachineSuccess() {
