@@ -3,6 +3,7 @@
 // All source code and related assets are the property of GetAutomaApp.
 // All rights reserved.
 
+import AutomaUtilities
 import Vapor
 
 internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
@@ -54,10 +55,13 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
         } catch {
             sendTelemetryDataOnGetAndValidateDeleteNodeMachineResponseFail(
                 error: error,
-                message: "Failed to make HTTP request to delete machine with ID '\(machineID)'."
+                reason: "Failed to make HTTP request to delete machine with ID '\(machineID)'."
             )
-            // TODO: refactor throwing direct error to custom `SeleniumGridNodeMachineAutoscalerError`
-            throw error
+            throw AutomaGenericErrors
+                .httpClientRequestFailed(
+                    requestDescription: "Delete node machine with ID '\(machineID)' using fly.io Machines API",
+                    error: error.localizedDescription
+                )
         }
     }
 
@@ -68,7 +72,7 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
     }
 
     private func handleInvalidDeleteNodeMachineResponse(response: ClientResponse) throws {
-        let error: [String: String]
+        let error: FlyAPIError
         do {
             error = try decodeErrorFromResponse(response)
         } catch {
@@ -85,29 +89,30 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
         response: ClientResponse,
         error: any Error
     ) {
-        let bodyString = String(buffer: response.body ?? .init(string: "<<response_body_empty>>"))
+        let bodyString = getClientResponseBodyAsString(response: response)
         sendTelemetryDataOnGetAndValidateDeleteNodeMachineResponseFail(
             error: error,
-            message: """
-            Invalid HTTP response status for deleting node machine with ID '\(machineID)'. \
-            Failed to decode error from response body. Response body: '\(bodyString)'
+            reason: """
+            Invalid HTTP response status '\(response.status)' for deleting node machine \
+            with ID '\(machineID)'. Failed to decode error from response body. \
+            Response body: '\(bodyString)'
             """
         )
     }
 
     private func sendTelemetryDataOnGetAndValidateDeleteNodeMachineResponseFail(
-        error: any Error, message: String
+        error: any Error, reason: String
     ) {
-        logGetAndValidateDeleteNodeMachineResponseFail(message: message, error: error)
+        logGetAndValidateDeleteNodeMachineResponseFail(reason: reason, error: error)
         AutoscalerMetric.deleteSeleniumGridNodeAppFlyMachine(machineID: machineID, status: .fail).increment()
     }
 
-    private func logGetAndValidateDeleteNodeMachineResponseFail(message: String, error: any Error) {
+    private func logGetAndValidateDeleteNodeMachineResponseFail(reason: String, error: any Error) {
         logger.error(
             "Failed to delete node machine.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
-                "reason": .string(message),
+                "reason": .string(reason),
                 "machine_id": .string(machineID),
                 "error": .string(error.localizedDescription),
             ]

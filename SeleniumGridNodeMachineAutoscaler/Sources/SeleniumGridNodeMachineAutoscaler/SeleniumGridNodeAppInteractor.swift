@@ -22,7 +22,14 @@ internal extension SeleniumGridNodeAppInteractorBase {
     typealias FlyAPIError = [String: String]
 
     func decodeErrorFromResponse(_ response: ClientResponse) throws -> FlyAPIError {
-        return try response.content.decode(FlyAPIError.self)
+        do {
+            return try response.content.decode(FlyAPIError.self)
+        } catch {
+            throw AutomaGenericErrors.decodeResponseContentFailed(
+                contentType: "FlyAPIError",
+                error: error.localizedDescription
+            )
+        }
     }
 
     func isInvalidHTTPResponseStatus(status: HTTPStatus) -> Bool {
@@ -73,6 +80,12 @@ internal class SeleniumGridNodeAppInteractor: SeleniumGridNodeAppInteractorBase 
 
     internal func sleepBetweenCycle(config: CycleSleeper.CycleSleeperConfig) async throws {
         try await CycleSleeper(config, logger: logger).sleep()
+    }
+
+    internal func getClientResponseBodyAsString(
+        response: ClientResponse,
+    ) -> String {
+        String(buffer: response.body ?? .init(string: "<<response_body_empty>>"))
     }
 
     deinit {}
