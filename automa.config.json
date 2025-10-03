@@ -6,7 +6,7 @@
     "owner_repo" : ""
   },
   "fly" : {
-    "config_files_root" : "./infra",
+    "config_files_root" : "./infra/fly-configs/",
     "environments" : [
       "production",
       "sandbox",
