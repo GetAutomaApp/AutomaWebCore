@@ -7,9 +7,6 @@ import AutomaUtilities
 import SwiftWebDriver
 import Vapor
 
-// TODO: update Autoscaler NodeMachineDeleter and NodeMachineCreator to send a custom error log message on every
-// location where an error could be thrown, instead of wrapping multiple try statements with one block.
-
 internal struct WebBrowserClient {
     let logger: Logger
     let payload: APIEndpointPayload
@@ -161,8 +158,12 @@ internal struct WebBrowserClient {
             )
         } catch {
             sendTelemetryDataOnGetDriverWindowOuterHTMLPropertyFailed(error: error)
-            // TODO: refactor throwing direct error to custom `SeleniumGridNodeMachineAutoscalerError`
-            throw error
+            throw APIError.webBrowserClientError(
+                error: """
+                Failed to get active driver window `outerHTML` property for website with URL \
+                '\(payload.url.absoluteString)'. Error: \(error.localizedDescription)
+                """
+            )
         }
     }
 

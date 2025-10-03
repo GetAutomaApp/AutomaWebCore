@@ -60,11 +60,18 @@ internal class NodeMachineUpdater: NodeMachineCreationBase {
     ) async throws -> ClientResponse {
         let uri = getUpdateMachineURI()
 
-        return try await client
-            .post(uri) { req in
-                req.headers = .init(flyAPIHTTPRequestAuthenticationHeader)
-                try req.content.encode(["config": updatedConfig.config])
-            }
+        do {
+            return try await client
+                .post(uri) { req in
+                    req.headers = .init(flyAPIHTTPRequestAuthenticationHeader)
+                    try req.content.encode(["config": updatedConfig.config])
+                }
+        } catch {
+            throw AutomaGenericErrors.httpClientRequestFailed(
+                requestDescription: "Update node machine configuration using fly.io Machines API for machine with ID '\(machineID).'",
+                error: error.localizedDescription
+            )
+        }
     }
 
     private func getUpdateMachineURI() -> URI {
@@ -73,11 +80,40 @@ internal class NodeMachineUpdater: NodeMachineCreationBase {
 
     private func handleInvalidUpdateMachineResponse(response: ClientResponse) throws {
         if isInvalidHTTPResponseStatus(status: response.status) {
+            let error: FlyAPIError
+            do {
+                error = try decodeErrorFromResponse(response)
+            } catch {
+                logDecodeErrorFromUpdateNodeMachineResponseFail(response: response, error: error)
+                throw error
+            }
             try handleFlyMachinesAPIError(payload: .init(
                 message: "Failed to updated machine node 'SE_NODE_HOST' environment variable to URL of the machine",
-                error: decodeErrorFromResponse(response)
+                error: error
             ))
         }
+    }
+
+    private func logDecodeErrorFromUpdateNodeMachineResponseFail(response: ClientResponse, error: any Error) {
+        let bodyString = getClientResponseBodyAsString(response: response)
+        logNodeMachineUpdateFail(
+            reason: """
+            Invalid HTTP response status '\(response.status)' for updating node machine. \
+            Failed to decode error from response body. Response body: '\(bodyString)'
+            """,
+            error: error
+        )
+    }
+
+    private func logNodeMachineUpdateFail(reason: String, error: any Error) {
+        logger.error(
+            "Node machine update failed.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "reason": .string(reason),
+                "error": .string(error.localizedDescription),
+            ]
+        )
     }
 
     private func logUpdateMachineSuccess(updateResponseBody: ByteBuffer) {
@@ -94,7 +130,7 @@ internal class NodeMachineUpdater: NodeMachineCreationBase {
     private func getResponseBodyFromUpdateNodeMachineResponse(_ response: ClientResponse) throws -> ByteBuffer {
         try response
             .unwrapBodyOrThrow(
-                errorMessage: "Failed to get update node machine response for machine with ID '\(machineID)'"
+                errorMessage: "Failed to get update node machine response body for machine with ID '\(machineID)'"
             )
     }
 
