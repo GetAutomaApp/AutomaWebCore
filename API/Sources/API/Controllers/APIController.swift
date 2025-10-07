@@ -48,7 +48,19 @@ public struct APIEndpointPayload: Content {
     let url: URL
     let scrollToBottom: Bool
 
-    init(url: URL, scrollToBottom: Bool = false) {
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        url = try values.decode(URL.self, forKey: .url)
+        guard
+            let stb = try? values.decode(Bool.self, forKey: .url)
+        else {
+            scrollToBottom = false
+            return
+        }
+        scrollToBottom = stb
+    }
+
+    public init(url: URL, scrollToBottom: Bool = false) {
         self.url = url
         self.scrollToBottom = scrollToBottom
     }
