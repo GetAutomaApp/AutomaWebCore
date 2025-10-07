@@ -12,3 +12,5 @@ cd "$APP_PATH" && flyctl deploy \
     --ha=false \
     --config=.fly.toml \
     --build-secret GITHUB_SSH_AUTHENTICATION_TOKEN="$(cat ../infra/docker-secrets/GITHUB_SSH_AUTHENTICATION_TOKEN)"
+
+rm .fly.toml
