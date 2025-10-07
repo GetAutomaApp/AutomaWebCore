@@ -6,7 +6,6 @@ FLY_CONFIG_TEMPLATE_FILE_NAME=$2
 ENV=$3
 
 CONFIG_PATH=$(npm run fly:config -- "$FLY_CONFIG_TEMPLATE_FILE_NAME" "$ENV" | tail -n 1)
-echo "Config Path $CONFIG_PATH"
 cp "$CONFIG_PATH" "$APP_PATH/.fly.toml"
 
 cd "$APP_PATH" && flyctl deploy \

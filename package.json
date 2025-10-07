@@ -31,12 +31,12 @@
     "api": "npm run swift:build-and-run -- ./API API",
     "autoscaler:all": "npx npm-run-all --parallel autoscaler:creator autoscaler:off_machines_destroyer autoscaler:old_machines_destroyer",
     "fly:config": "npm run generate -- fly",
-    "deploy:autoscaler:sandbox": "bash ./infra/scripts/deply-app.sh ./SeleniumGridNodeMachineAutoscaler autoscaler sandbox",
-    "deploy:autoscaler:staging": "bash ./infra/scripts/deply-app.sh ./SeleniumGridNodeMachineAutoscaler autoscaler staging",
-    "deploy:autoscaler:production": "bash ./infra/scripts/deply-app.sh ./SeleniumGridNodeMachineAutoscaler autoscaler production",
-    "deploy:api:sandbox": "bash ./infra/scripts/deply-app.sh ./API api sandbox",
-    "deploy:api:staging": "bash ./infra/scripts/deply-app.sh ./API api staging",
-    "deploy:api:production": "bash ./infra/scripts/deply-app.sh ./API api production"
+    "deploy:autoscaler:sandbox": "bash ./infra/scripts/deploy-app.sh ./SeleniumGridNodeMachineAutoscaler autoscaler sandbox",
+    "deploy:autoscaler:staging": "bash ./infra/scripts/deploy-app.sh ./SeleniumGridNodeMachineAutoscaler autoscaler staging",
+    "deploy:autoscaler:production": "bash ./infra/scripts/deploy-app.sh ./SeleniumGridNodeMachineAutoscaler autoscaler production",
+    "deploy:api:sandbox": "bash ./infra/scripts/deploy-app.sh ./API api sandbox",
+    "deploy:api:staging": "bash ./infra/scripts/deploy-app.sh ./API api staging",
+    "deploy:api:production": "bash ./infra/scripts/deploy-app.sh ./API api production"
   },
   "repository": {
     "type": "git",
