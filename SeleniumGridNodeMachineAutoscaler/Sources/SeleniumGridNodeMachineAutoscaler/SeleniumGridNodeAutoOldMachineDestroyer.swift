@@ -79,7 +79,7 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
 
     private func logNoMachinesToDestroy(totalMachines: Int) {
         logger.info(
-            "None of the \(totalMachines) machines in a considered old. No machines will be destroyed.",
+            "None of the \(totalMachines) machines are considered old. No machines will be destroyed.",
             metadata: [
                 "to": .string("\(String(describing: Self.self)).\(#function)"),
             ]
