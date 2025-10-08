@@ -19,6 +19,7 @@ internal class NodeMachineDeleter: SeleniumGridNodeAppInteractor {
     public func delete() async throws {
         sendTelemetryDataOnDeleteNodeMachineStarted()
         try await getAndValidateDeleteNodeMachineResponse()
+        sendTelemetryDataOnDeleteNodeMachineSuccess()
     }
 
     private func sendTelemetryDataOnDeleteNodeMachineStarted() {
