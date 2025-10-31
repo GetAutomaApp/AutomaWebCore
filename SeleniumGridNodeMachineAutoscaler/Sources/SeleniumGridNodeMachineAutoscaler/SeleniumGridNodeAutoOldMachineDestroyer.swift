@@ -71,7 +71,12 @@ internal class SeleniumGridNodeAutoOldMachineDestroyer: SeleniumGridNodeMachineA
 
         guard let nodeMachineExpirationMinutesInt = TimeInterval(nodeMachineExpirationMinutes)
         else {
-            throw Abort(.internalServerError)
+            throw AutomaGenericErrors
+                .guardFailed(
+                    message: """
+                    Could not convert 'NODE_MACHINE_EXPIRATION_MINUTES' of value '\(nodeMachineExpirationMinutes)' to type `TimeInterval`"
+                    """
+                )
         }
 
         return nodeMachineExpirationMinutesInt
