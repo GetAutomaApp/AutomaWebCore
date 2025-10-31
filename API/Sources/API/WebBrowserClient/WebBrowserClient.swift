@@ -9,11 +9,11 @@ import Vapor
 
 internal struct WebBrowserClient {
     let logger: Logger
-    let payload: APIEndpointPayload
+    let payload: AutomaWebCoreAPIEndpointPayload
     let seleniumGridHubBase: URL
     let driver: WebDriver<ChromeDriver>
 
-    init(logger: Logger, payload: APIEndpointPayload) async throws {
+    init(logger: Logger, payload: AutomaWebCoreAPIEndpointPayload) async throws {
         self.logger = logger
         self.payload = payload
         seleniumGridHubBase = try URL
