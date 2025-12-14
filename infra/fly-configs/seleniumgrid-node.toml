@@ -3,16 +3,16 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'automa-web-core-seleniumgrid-node'
+app = 'automa-web-core-seleniumgrid-node-__FLY_ENVIRONMENT__'
 primary_region = 'jnb'
 
 [build]
-  image = 'selenium/node-chrome:latest'
+image = 'selenium/node-chrome:latest'
 
 [env]
-  SE_EVENT_BUS_HOST = 'automa-web-core-seleniumgrid-hub.internal'
+SE_EVENT_BUS_HOST = 'automa-web-core-seleniumgrid-hub.internal'
 
 [[vm]]
-  memory = '2gb'
-  cpu_kind = 'shared'
-  cpus = 1
+memory = '2gb'
+cpu_kind = 'performance'
+cpus = 1

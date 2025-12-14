@@ -88,9 +88,13 @@ internal class NodeMachineCreator: NodeMachineCreationBase {
     }
 
     private func createImpl() async throws {
-        logCreateNodeMachineStarted()
         let machineID = try await createNodeMachine()
         try await updateAndStartMachine(machineID: machineID)
+    }
+
+    private func sendTelemetryDataOnCreateNodeMachineStarted() {
+        AutoscalerMetric.createSeleniumGridNodeAppFlyMachine(status: .start).increment()
+        logCreateNodeMachineStarted()
     }
 
     private func logCreateNodeMachineStarted() {
@@ -103,34 +107,109 @@ internal class NodeMachineCreator: NodeMachineCreationBase {
     }
 
     private func createNodeMachine() async throws -> MachineIdentifier {
+        sendTelemetryDataOnCreateNodeMachineStarted()
+
+        let machineID: MachineIdentifier
         let response = try await getCreateNodeMachineResponse()
+
         try handleInvalidCreateNodeMachineResponse(response: response)
-        let machineID = try getMachineIDFromCreateMachineResponse(response)
-        logNodeMachineCreationSuccess(machineID: machineID)
+
+        machineID = try getMachineIDFromCreateMachineResponse(response)
+
+        sendTelemetryDataOnCreateNodeMachineSuccess(machineID: machineID)
+
         return machineID
+    }
+
+    private func sendTelemetryDataOnCreateNodeMachineSuccess(machineID: MachineIdentifier) {
+        AutoscalerMetric.createSeleniumGridNodeAppFlyMachine(status: .success).increment()
+        logNodeMachineCreationSuccess(machineID: machineID)
     }
 
     private func getCreateNodeMachineResponse() async throws
         -> ClientResponse
     {
-        return try await client.post(.init(stringLiteral: payload.nodesAppMachineAPIURL)) { req in
-            req.headers = .init(flyAPIHTTPRequestAuthenticationHeader)
-            try req.content.encode(machineConfiguration)
+        do {
+            return try await client.post(.init(stringLiteral: payload.nodesAppMachineAPIURL)) { req in
+                req.headers = .init(flyAPIHTTPRequestAuthenticationHeader)
+                try req.content.encode(machineConfiguration)
+            }
+        } catch {
+            sendTelemetryDataOnCreateNodeMachineFail(
+                reason: "HTTP request to create node machine failed.",
+                error: error,
+            )
+            throw AutomaGenericErrors
+                .httpClientRequestFailed(
+                    requestDescription: "Create node machine with fly.io Machines API.",
+                    error: error.localizedDescription
+                )
         }
     }
 
     private func handleInvalidCreateNodeMachineResponse(response: ClientResponse) throws {
         if isInvalidHTTPResponseStatus(status: response.status) {
-            let error = try decodeErrorFromResponse(response)
+            let error: FlyAPIError
+            do {
+                error = try decodeErrorFromResponse(response)
+            } catch {
+                sendTelemetryDataOnUnableToDecodeErrorFromCreateNodeMachineResponse(
+                    response: response,
+                    error: error
+                )
+                throw error
+            }
             try handleFlyMachinesAPIError(payload: .init(message: "Node machine creation failed", error: error))
         }
+    }
+
+    private func sendTelemetryDataOnUnableToDecodeErrorFromCreateNodeMachineResponse(
+        response: ClientResponse,
+        error: any Error
+    ) {
+        let bodyString = getClientResponseBodyAsString(response: response)
+        sendTelemetryDataOnCreateNodeMachineFail(
+            reason: """
+            Invalid HTTP response status '\(response.status)' for creating node machine. \
+            Failed to decode error from response body. Response body: '\(bodyString)'
+            """,
+            error: error,
+        )
     }
 
     private func getMachineIDFromCreateMachineResponse(_ response: ClientResponse) throws -> MachineIdentifier {
         struct CreateMachineResponseContent: Content {
             let id: String
         }
-        return try response.content.decode(CreateMachineResponseContent.self).id
+        do {
+            return try response.content.decode(CreateMachineResponseContent.self).id
+        } catch {
+            sendTelemetryDataOnCreateNodeMachineFail(
+                reason: "Failed to decode create node machine response as 'CreateMachineResponseContent'",
+                error: error,
+            )
+            throw AutomaGenericErrors
+                .decodeResponseContentFailed(
+                    contentType: "CreateMachineResponseContent",
+                    error: error.localizedDescription
+                )
+        }
+    }
+
+    private func sendTelemetryDataOnCreateNodeMachineFail(reason: String, error: any Error) {
+        AutoscalerMetric.createSeleniumGridNodeAppFlyMachine(status: .fail).increment()
+        logNodeMachineCreationFail(reason: reason, error: error)
+    }
+
+    private func logNodeMachineCreationFail(reason: String, error: any Error) {
+        logger.error(
+            "Node machine creation failed.",
+            metadata: [
+                "to": .string("\(String(describing: Self.self)).\(#function)"),
+                "reason": .string(reason),
+                "error": .string(error.localizedDescription),
+            ]
+        )
     }
 
     private func logNodeMachineCreationSuccess(machineID: MachineIdentifier) {
@@ -144,15 +223,25 @@ internal class NodeMachineCreator: NodeMachineCreationBase {
     }
 
     private func updateAndStartMachine(machineID: MachineIdentifier) async throws {
-        try await NodeMachineUpdater(
-            logger: logger,
-            client: client,
-            seleniumGridHubBase: seleniumGridHubBase,
-            machineID: machineID
-        )
-        .updateNodeHostURLEnvironmentVariable()
+        do {
+            try await NodeMachineUpdater(
+                logger: logger,
+                client: client,
+                seleniumGridHubBase: seleniumGridHubBase,
+                machineID: machineID
+            )
+            .updateNodeHostURLEnvironmentVariable()
 
-        try await sleepBetweenCycle(config: .init(duration: 20))
+            try await sleepBetweenCycle(config: .init(duration: 20))
+        } catch {
+            sendTelemetryDataOnCreateNodeMachineFail(
+                reason: """
+                Failed to update and start new node machine with ID '\(machineID)'.
+                """,
+                error: error
+            )
+            throw error
+        }
     }
 
     deinit {}
