@@ -7,3 +7,4 @@ infra/docker-secrets/*
 !.env.example.*
 .fly.toml
 wireguard.conf
+.DS_Store
